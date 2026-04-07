@@ -9,6 +9,7 @@ export default function AddChannelForm() {
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
+  const [domains, setDomains] = useState<string[]>([]);
   const [checking, setChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -18,22 +19,25 @@ export default function AddChannelForm() {
     e.preventDefault();
     setError("");
     setChecking(true);
-    try {
-      const res = await fetch("/api/channels/info", {
+    const [infoRes, domainsRes] = await Promise.all([
+      fetch("/api/channels/info", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channel_url: url }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to fetch channel info");
-      setName(data.name ?? "");
-      setDomain(data.domain ?? "");
-      setStep("confirm");
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Could not fetch channel. Check the URL and try again.");
-    } finally {
-      setChecking(false);
+      }),
+      fetch("/api/domains"),
+    ]);
+    setChecking(false);
+    if (!infoRes.ok) {
+      setError("Could not fetch channel. Check the URL and try again.");
+      return;
     }
+    const info = await infoRes.json();
+    const domainsData = domainsRes.ok ? await domainsRes.json() : [];
+    setName(info.name ?? "");
+    setDomains(domainsData.map((d: { name: string }) => d.name));
+    setDomain("");
+    setStep("confirm");
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -46,7 +50,7 @@ export default function AddChannelForm() {
     });
     setSubmitting(false);
     if (res.ok) {
-      setUrl(""); setName(""); setDomain("");
+      setUrl(""); setName(""); setDomain(""); setDomains([]);
       setStep("url");
       router.refresh();
     } else {
@@ -94,8 +98,11 @@ export default function AddChannelForm() {
             </div>
             <div className="flex flex-col gap-1">
               <label className="text-xs text-neutral-400">Domain <span className="text-red-500">*</span></label>
-              <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="e.g. AI" required
-                className="w-32 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm" />
+              <select value={domain} onChange={(e) => setDomain(e.target.value)} required
+                className="w-40 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm">
+                <option value="">Select domain</option>
+                {domains.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
             </div>
           </div>
           <div className="flex gap-2">
