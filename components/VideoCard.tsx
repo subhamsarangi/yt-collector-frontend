@@ -6,12 +6,26 @@ type Props = {
   title: string;
   thumbnail_r2_url: string | null;
   published_at: string | null;
-  snippet?: string; // highlighted transcript snippet
+  snippet?: string;
+  compact?: boolean;
 };
 
-export default function VideoCard({ id, title, thumbnail_r2_url, published_at, snippet }: Props) {
+export default function VideoCard({ id, title, thumbnail_r2_url, published_at, snippet, compact }: Props) {
+  if (compact) {
+    return (
+      <Link href={`/video/${id}`}
+        className="flex gap-3 px-4 py-2 hover:bg-neutral-800 transition">
+        {thumbnail_r2_url && (
+          <img src={thumbnail_r2_url} alt={title} className="w-16 h-10 object-cover rounded flex-shrink-0" />
+        )}
+        <p className="text-xs line-clamp-2 self-center">{title}</p>
+      </Link>
+    );
+  }
+
   return (
-    <Link href={`/video/${id}`} className="flex gap-3 bg-neutral-900 rounded-lg p-3 hover:bg-neutral-800 transition">
+    <Link href={`/video/${id}`}
+      className="flex gap-3 bg-neutral-900 rounded-lg p-3 hover:bg-neutral-800 transition">
       {thumbnail_r2_url && (
         <img src={thumbnail_r2_url} alt={title} className="w-32 h-20 object-cover rounded flex-shrink-0" />
       )}

@@ -9,6 +9,7 @@ export default function AddChannelForm() {
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
+  const [thumbnailUrl, setThumbnailUrl] = useState("");
   const [domains, setDomains] = useState<string[]>([]);
   const [checking, setChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -35,6 +36,7 @@ export default function AddChannelForm() {
     const info = await infoRes.json();
     const domainsData = domainsRes.ok ? await domainsRes.json() : [];
     setName(info.name ?? "");
+    setThumbnailUrl(info.thumbnail_url ?? "");
     setDomains(domainsData.map((d: { name: string }) => d.name));
     setDomain("");
     setStep("confirm");
@@ -46,11 +48,11 @@ export default function AddChannelForm() {
     const res = await fetch("/api/channels", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, url, domain }),
+      body: JSON.stringify({ name, url, domain, thumbnail_url: thumbnailUrl }),
     });
     setSubmitting(false);
     if (res.ok) {
-      setUrl(""); setName(""); setDomain(""); setDomains([]);
+      setUrl(""); setName(""); setDomain(""); setThumbnailUrl(""); setDomains([]);
       setStep("url");
       router.refresh();
     } else {
