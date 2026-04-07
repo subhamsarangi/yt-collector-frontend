@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 const OCI = process.env.OCI_API_URL!;
@@ -15,8 +15,21 @@ async function ociPost(path: string, body: object) {
   return res.json();
 }
 
-export async function GET() {
-  // Pick next pending item
+// Called by Supabase webhook on queue INSERT, or manually via GET for testing
+export async function GET(req: NextRequest) {
+  return processQueue();
+}
+
+export async function POST(req: NextRequest) {
+  // Validate Supabase webhook secret
+  const secret = req.headers.get("x-webhook-secret");
+  if (secret !== process.env.QUEUE_WEBHOOK_SECRET) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return processQueue();
+}
+
+async function processQueue() {
   const { data: item } = await supabaseAdmin
     .from("queue")
     .select("*")
@@ -27,7 +40,6 @@ export async function GET() {
 
   if (!item) return NextResponse.json({ ok: true, message: "Queue empty" });
 
-  // Mark as processing
   await supabaseAdmin
     .from("queue")
     .update({ status: "yt_dlp_processing" })
@@ -36,7 +48,6 @@ export async function GET() {
   try {
     const result = await ociPost("/video", { youtube_id: item.youtube_id });
 
-    // Save metadata + URLs to videos table (upsert)
     await supabaseAdmin.from("videos").upsert({
       youtube_id: item.youtube_id,
       title: result.metadata.title,
@@ -56,8 +67,7 @@ export async function GET() {
       .update({ status: "yt_dlp_done" })
       .eq("id", item.id);
 
-    // Trigger Whisper
-    const callbackUrl = `${process.env.VERCEL_URL || "http://localhost:3000"}/api/whisper/callback`;
+    const callbackUrl = `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}/api/whisper/callback`;
     await fetch(`${OCI}/whisper/trigger`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${OCI_KEY}` },
@@ -66,7 +76,7 @@ export async function GET() {
         audio_url: result.audio_url,
         callback_url: callbackUrl,
       }),
-    }).catch(() => null); // Whisper trigger is fire-and-forget
+    }).catch(() => null);
 
     await supabaseAdmin
       .from("queue")
