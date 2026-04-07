@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/channels",     "schedule": "0 0 * * *" },
+    { "path": "/api/cron/queue-runner", "schedule": "*/5 * * * *" }
+  ]
+}
