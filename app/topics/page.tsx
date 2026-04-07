@@ -2,6 +2,8 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import Link from "next/link";
 import TopicSearchForm from "@/components/TopicSearchForm";
 
+import DeleteTopicButton from "@/components/DeleteTopicButton";
+
 export const revalidate = 60;
 
 export default async function TopicsPage() {
@@ -28,7 +30,10 @@ export default async function TopicsPage() {
           <Link key={t.id} href={`/topic/${t.id}`}
             className="flex items-center justify-between bg-neutral-900 rounded-lg px-4 py-3 hover:bg-neutral-800 transition">
             <span className="font-medium">{t.name}</span>
-            <span className="text-xs text-neutral-500">{countMap[t.id] ?? 0} videos</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-neutral-500">{countMap[t.id] ?? 0} videos</span>
+              <DeleteTopicButton id={t.id} />
+            </div>
           </Link>
         ))}
         {!topics?.length && <p className="text-neutral-500 text-sm">No topics yet. Search for one above.</p>}

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import VideoCard from "@/components/VideoCard";
+import DeleteTopicButton from "@/components/DeleteTopicButton";
 import { notFound } from "next/navigation";
 
 export const revalidate = 10;
@@ -52,12 +53,15 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{topic.name}</h1>
-        {(videos?.length ?? 0) > 0 && (
-          <a href={`${process.env.NEXT_PUBLIC_OCI_API_URL}/pdf/topic/${id}`}
-            className="text-sm text-neutral-400 hover:text-white border border-neutral-700 rounded px-3 py-1">
-            Export PDF
-          </a>
-        )}
+        <div className="flex items-center gap-3">
+          {(videos?.length ?? 0) > 0 && (
+            <a href={`${process.env.NEXT_PUBLIC_OCI_API_URL}/pdf/topic/${id}`}
+              className="text-sm text-neutral-400 hover:text-white border border-neutral-700 rounded px-3 py-1">
+              Export PDF
+            </a>
+          )}
+          <DeleteTopicButton id={id} redirect={true} />
+        </div>
       </div>
 
       {/* In-progress queue items */}
