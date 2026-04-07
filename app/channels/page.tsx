@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import VideoCard from "@/components/VideoCard";
 import AddChannelForm from "../../components/AddChannelForm";
+import DeleteChannelButton from "../../components/DeleteChannelButton";
 
 export const revalidate = 60;
 
@@ -46,12 +47,7 @@ export default async function ChannelsPage() {
                       className="font-medium text-sm hover:text-neutral-300 truncate flex-1">
                       {channel.name}
                     </a>
-                    <form action={`/api/channels/${channel.id}/delete`} method="POST">
-                      <button type="submit" title="Remove channel"
-                        className="text-neutral-600 hover:text-red-400 transition text-base leading-none">
-                        ✕
-                      </button>
-                    </form>
+                    <DeleteChannelButton id={channel.id} />
                   </div>
                   {/* Latest videos */}
                   <div className="flex flex-col gap-0 divide-y divide-neutral-800 flex-1">
