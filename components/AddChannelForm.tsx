@@ -2,112 +2,116 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+type Step = "url" | "confirm";
+
 export default function AddChannelForm() {
+  const [step, setStep] = useState<Step>("url");
   const [url, setUrl] = useState("");
   const [name, setName] = useState("");
   const [domain, setDomain] = useState("");
-  const [fetching, setFetching] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const router = useRouter();
 
-  async function handleUrlBlur() {
-    if (!url) return;
-    setFetching(true);
-    setName("");
-    setDomain("");
+  async function handleCheck(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setChecking(true);
     try {
       const res = await fetch("/api/channels/info", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ channel_url: url }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setName(data.name ?? "");
-        setDomain(data.domain ?? "");
-      }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to fetch channel info");
+      setName(data.name ?? "");
+      setDomain(data.domain ?? "");
+      setStep("confirm");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Could not fetch channel. Check the URL and try again.");
     } finally {
-      setFetching(false);
+      setChecking(false);
     }
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
-    await fetch("/api/channels", {
+    setSubmitting(true);
+    const res = await fetch("/api/channels", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, url, domain }),
     });
-    setUrl(""); setName(""); setDomain("");
-    setLoading(false);
-    router.refresh();
+    setSubmitting(false);
+    if (res.ok) {
+      setUrl(""); setName(""); setDomain("");
+      setStep("url");
+      router.refresh();
+    } else {
+      setError("Failed to add channel.");
+    }
+  }
+
+  function handleReset() {
+    setStep("url");
+    setError("");
+    setName("");
+    setDomain("");
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-      <div className="flex flex-col sm:flex-row gap-2">
-
-        <div className="flex-1 flex flex-col gap-1">
-          <label className="text-xs text-neutral-400">Channel URL <span className="text-red-500">*</span></label>
+    <div className="flex flex-col gap-3">
+      {step === "url" && (
+        <form onSubmit={handleCheck} className="flex gap-2">
           <input
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onBlur={handleUrlBlur}
-            placeholder="https://youtube.com/@..."
+            onChange={(e) => { setUrl(e.target.value); setError(""); }}
+            placeholder="https://www.youtube.com/@ChannelName"
             required
-            className="bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm"
+            className="flex-1 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm"
           />
-        </div>
+          <button type="submit" disabled={checking || !url}
+            className="bg-white text-black rounded px-4 py-2 text-sm font-medium hover:bg-neutral-200 disabled:opacity-50 whitespace-nowrap">
+            {checking ? "Checking..." : "Check channel"}
+          </button>
+        </form>
+      )}
 
-        <div className="flex-1 flex flex-col gap-1">
-          <label className="text-xs text-neutral-400">
-            Channel name <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder={fetching ? "" : "Auto-filled from URL"}
-              required
-              disabled={fetching}
-              className="w-full bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm disabled:opacity-50"
-            />
-            {fetching && (
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 text-xs animate-pulse">
-                fetching...
-              </span>
-            )}
+      {step === "confirm" && (
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs text-neutral-400">Channel URL</label>
+              <input value={url} disabled
+                className="flex-1 bg-neutral-900 border border-neutral-800 rounded px-3 py-2 text-sm text-neutral-500" />
+            </div>
+            <div className="flex-1 flex flex-col gap-1">
+              <label className="text-xs text-neutral-400">Channel name <span className="text-red-500">*</span></label>
+              <input value={name} onChange={(e) => setName(e.target.value)} required
+                className="flex-1 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm" />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-neutral-400">Domain <span className="text-red-500">*</span></label>
+              <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="e.g. AI" required
+                className="w-32 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm" />
+            </div>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs text-neutral-400">Domain <span className="text-red-500">*</span></label>
-          <div className="relative">
-            <input
-              value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              placeholder={fetching ? "" : "e.g. AI"}
-              required
-              disabled={fetching}
-              className="w-32 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm disabled:opacity-50"
-            />
-            {fetching && (
-              <span className="absolute right-2 top-1/2 -translate-y-1/2 text-neutral-500 text-xs animate-pulse">
-                ...
-              </span>
-            )}
+          <div className="flex gap-2">
+            <button type="submit" disabled={submitting || !name || !domain}
+              className="bg-white text-black rounded px-4 py-2 text-sm font-medium hover:bg-neutral-200 disabled:opacity-50">
+              {submitting ? "Adding..." : "Submit channel"}
+            </button>
+            <button type="button" onClick={handleReset}
+              className="text-sm text-neutral-500 hover:text-white px-3 py-2">
+              Cancel
+            </button>
           </div>
-        </div>
+        </form>
+      )}
 
-      </div>
-      <button
-        type="submit"
-        disabled={loading || fetching || !name}
-        className="self-start bg-white text-black rounded px-4 py-2 text-sm font-medium hover:bg-neutral-200 disabled:opacity-50"
-      >
-        {loading ? "Adding..." : "Add Channel"}
-      </button>
-    </form>
+      {error && <p className="text-red-400 text-xs">{error}</p>}
+    </div>
   );
 }
