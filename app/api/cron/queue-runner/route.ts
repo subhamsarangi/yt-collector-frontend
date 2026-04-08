@@ -79,17 +79,6 @@ async function processQueue() {
       .update({ status: "yt_dlp_done" })
       .eq("id", item.id);
 
-    const callbackUrl = `${process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"}/api/whisper/callback`;
-    await fetch(`${OCI}/whisper/trigger`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${OCI_KEY}` },
-      body: JSON.stringify({
-        queue_id: item.id,
-        audio_url: result.audio_url,
-        callback_url: callbackUrl,
-      }),
-    }).catch(() => null);
-
     await supabaseAdmin
       .from("queue")
       .update({ status: "whisper_processing" })
