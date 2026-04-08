@@ -26,6 +26,8 @@ export async function POST(req: NextRequest) {
 
   const { youtube_id } = queueItem;
 
+  const whisperDoneAt = new Date().toISOString();
+
   // Save transcript and clear audio URL
   await supabaseAdmin
     .from("videos")
@@ -44,6 +46,12 @@ export async function POST(req: NextRequest) {
     .from("queue")
     .update({ status: "complete" })
     .eq("id", queue_id);
+
+  // Record whisper timing
+  await supabaseAdmin
+    .from("processing_logs")
+    .update({ whisper_done_at: whisperDoneAt })
+    .eq("queue_id", queue_id);
 
   return NextResponse.json({ ok: true });
 }

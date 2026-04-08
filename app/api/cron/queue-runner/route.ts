@@ -55,8 +55,18 @@ async function processQueue() {
     .update({ status: "yt_dlp_processing" })
     .eq("id", item.id);
 
+  const ytdlpStartedAt = new Date().toISOString();
+
+  // Create processing log row
+  await supabaseAdmin.from("processing_logs").insert({
+    queue_id: item.id,
+    youtube_id: item.youtube_id,
+    ytdlp_started_at: ytdlpStartedAt,
+  });
+
   try {
     const result = await ociPost("/video", { youtube_id: item.youtube_id });
+    const ytdlpDoneAt = new Date().toISOString();
 
     await supabaseAdmin.from("videos").upsert({
       youtube_id: item.youtube_id,
@@ -78,6 +88,12 @@ async function processQueue() {
       .from("queue")
       .update({ status: "yt_dlp_done" })
       .eq("id", item.id);
+
+    // Record yt-dlp completion time
+    await supabaseAdmin
+      .from("processing_logs")
+      .update({ ytdlp_done_at: ytdlpDoneAt })
+      .eq("queue_id", item.id);
 
     await supabaseAdmin
       .from("queue")
