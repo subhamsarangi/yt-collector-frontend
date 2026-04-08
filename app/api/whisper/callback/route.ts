@@ -53,5 +53,17 @@ export async function POST(req: NextRequest) {
     .update({ whisper_done_at: whisperDoneAt })
     .eq("queue_id", queue_id);
 
+  // Trigger next pending item in queue
+  const baseUrl = req.headers.get("x-forwarded-host")
+    ? `https://${req.headers.get("x-forwarded-host")}`
+    : process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+
+  fetch(`${baseUrl}/api/cron/queue-runner`, {
+    method: "POST",
+    headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
+  }).catch(() => null);
+
   return NextResponse.json({ ok: true });
 }
