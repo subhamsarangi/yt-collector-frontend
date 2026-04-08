@@ -55,7 +55,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
         <h1 className="text-xl font-bold">{topic.name}</h1>
         <div className="flex items-center gap-3">
           {(videos?.length ?? 0) > 0 && (
-            <a href={`${process.env.NEXT_PUBLIC_OCI_API_URL}/pdf/topic/${id}`}
+            <a href={`/api/pdf/topic/${id}`}
               className="text-sm text-neutral-400 hover:text-white border border-neutral-700 rounded px-3 py-1">
               Export PDF
             </a>

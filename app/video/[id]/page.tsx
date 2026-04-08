@@ -42,7 +42,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
 
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-lg font-bold leading-snug">{video.title}</h1>
-        <a href={`${process.env.NEXT_PUBLIC_OCI_API_URL}/pdf/video/${id}`}
+        <a href={`/api/pdf/video/${id}`}
           className="text-sm text-neutral-400 hover:text-white border border-neutral-700 rounded px-3 py-1 whitespace-nowrap flex-shrink-0">
           Export PDF
         </a>
