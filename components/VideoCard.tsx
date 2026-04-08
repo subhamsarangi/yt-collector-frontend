@@ -14,9 +14,8 @@ type Props = {
 
 export default function VideoCard({ id, title, thumbnail_r2_url, published_at, snippet, compact, channel_name, channel_url }: Props) {
   const dateStr = published_at
-    ? new Date(published_at).toLocaleString(undefined, {
+    ? new Date(published_at).toLocaleDateString(undefined, {
         year: "numeric", month: "short", day: "numeric",
-        hour: "2-digit", minute: "2-digit",
       })
     : null;
 

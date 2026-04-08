@@ -12,9 +12,8 @@ function formatDuration(seconds: number) {
 }
 
 function formatDateTime(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
+  return new Date(iso).toLocaleDateString(undefined, {
     year: "numeric", month: "short", day: "numeric",
-    hour: "2-digit", minute: "2-digit",
   });
 }
 
