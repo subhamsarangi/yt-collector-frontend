@@ -30,6 +30,16 @@ export async function POST(req: NextRequest) {
 }
 
 async function processQueue() {
+  // If anything is already being processed, skip — one job at a time
+  const { data: inProgress } = await supabaseAdmin
+    .from("queue")
+    .select("id")
+    .in("status", ["yt_dlp_processing", "yt_dlp_done", "whisper_processing", "whisper_done"])
+    .limit(1)
+    .single();
+
+  if (inProgress) return NextResponse.json({ ok: true, message: "Job already in progress" });
+
   const { data: item } = await supabaseAdmin
     .from("queue")
     .select("*")
