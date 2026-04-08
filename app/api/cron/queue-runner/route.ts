@@ -68,7 +68,9 @@ async function processQueue() {
       thumbnail_r2_url: result.thumbnail_url,
       audio_r2_url: result.audio_url,
       published_at: result.metadata.upload_date
-        ? new Date(result.metadata.upload_date).toISOString()
+        ? new Date(
+            result.metadata.upload_date.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")
+          ).toISOString()
         : null,
     }, { onConflict: "youtube_id" });
 
