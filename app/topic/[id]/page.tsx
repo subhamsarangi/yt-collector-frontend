@@ -35,7 +35,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, channels(name)")
     .eq("topic_id", id)
     .order("published_at", { ascending: false });
 
@@ -87,7 +87,11 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       {/* Completed videos */}
       {(videos?.length ?? 0) > 0 && (
         <div className="flex flex-col gap-3">
-          {videos?.map((v) => <VideoCard key={v.id} {...v} />)}
+          {videos?.map((v) => {
+            const raw = v as unknown as { channels?: Array<{ name: string }> | null };
+            const channelName = raw.channels?.[0]?.name ?? null;
+            return <VideoCard key={v.id} {...v} channel_name={channelName} />;
+          })}
         </div>
       )}
 

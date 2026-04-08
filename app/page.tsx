@@ -7,7 +7,7 @@ export const revalidate = 60;
 export default async function Home() {
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, channels(name)")
     .order("created_at", { ascending: false })
     .limit(20);
 
@@ -25,7 +25,10 @@ export default async function Home() {
       <section>
         <h2 className="text-sm font-semibold text-neutral-400 mb-3">Recent Videos</h2>
         <div className="flex flex-col gap-3">
-          {videos?.map((v) => <VideoCard key={v.id} {...v} />)}
+          {videos?.map((v) => {
+            const ch = (v as any).channels;
+            return <VideoCard key={v.id} {...v} channel_name={ch?.name ?? null} />;
+          })}
           {!videos?.length && <p className="text-neutral-500 text-sm">No videos yet.</p>}
         </div>
       </section>
