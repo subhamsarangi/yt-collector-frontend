@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ExportPdfButton from "@/components/ExportPdfButton";
+import DeleteVideoButton from "@/components/DeleteVideoButton";
 
 export const revalidate = 60;
 
@@ -44,7 +45,10 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
 
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-lg font-bold leading-snug">{video.title}</h1>
-        <ExportPdfButton href={`/api/pdf/video/${id}`} filename={`video-${id}.pdf`} />
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <DeleteVideoButton id={id} />
+          <ExportPdfButton href={`/api/pdf/video/${id}`} filename={`video-${id}.pdf`} />
+        </div>
       </div>
 
       {/* Channel — uniform avatar row for both tracked channels and topic videos */}

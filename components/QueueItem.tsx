@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const STATUS_LABEL: Record<string, string> = {
   pending:            "Waiting in queue",
@@ -30,9 +31,20 @@ type Props = {
   last_error?: string | null;
 };
 
-export default function QueueItem({ youtube_id, status, last_error }: Props) {
+export default function QueueItem({ id, youtube_id, status, last_error }: Props) {
   const [open, setOpen] = useState(false);
+  const [skipping, setSkipping] = useState(false);
+  const router = useRouter();
   const isError = status.startsWith("error_");
+  const isActive = ["yt_dlp_processing", "yt_dlp_done", "whisper_processing", "whisper_done", "pending"].includes(status);
+
+  async function handleSkip(e: React.MouseEvent) {
+    e.stopPropagation();
+    setSkipping(true);
+    await fetch(`/api/queue/${id}/skip`, { method: "POST" });
+    setSkipping(false);
+    router.refresh();
+  }
 
   return (
     <div className="bg-neutral-900 rounded-lg overflow-hidden">
@@ -41,7 +53,13 @@ export default function QueueItem({ youtube_id, status, last_error }: Props) {
         onClick={() => isError && setOpen((o) => !o)}
       >
         <span className="text-xs text-neutral-400 font-mono">{youtube_id}</span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {isActive && !isError && (
+            <button onClick={handleSkip} disabled={skipping}
+              className="text-xs text-neutral-600 hover:text-red-400 transition disabled:opacity-50">
+              {skipping ? "..." : "Skip"}
+            </button>
+          )}
           {isError ? (
             <span className="text-xs bg-red-900 text-red-300 rounded px-2 py-0.5">
               {STATUS_LABEL[status] ?? status}
