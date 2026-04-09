@@ -36,8 +36,9 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{topic.name}</h1>
         <div className="flex items-center gap-3">
+          <TriggerQueueButton enabled={allPending} />
           {(videos?.length ?? 0) > 0 && (
-          <ExportPdfButton href={`/api/pdf/topic/${id}`} filename={`topic-${id}.pdf`} />
+            <ExportPdfButton href={`/api/pdf/topic/${id}`} filename={`topic-${id}.pdf`} />
           )}
           <DeleteTopicButton id={id} redirect={true} />
         </div>
@@ -46,10 +47,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       {/* In-progress queue items */}
       {(queueItems?.length ?? 0) > 0 && (
         <div className="flex flex-col gap-2">
-          <div className="flex items-center justify-between">
-            <p className="text-xs text-neutral-500 uppercase tracking-wider">Processing</p>
-            <TriggerQueueButton enabled={allPending} />
-          </div>
+          <p className="text-xs text-neutral-500 uppercase tracking-wider">Processing</p>
           {queueItems?.map((item) => (
             <QueueItem key={item.id} {...item} />
           ))}
