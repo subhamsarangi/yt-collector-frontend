@@ -23,7 +23,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
 
   const { data: video } = await supabaseAdmin
     .from("videos")
-    .select("*, channels(id, name, url), topics(id, name)")
+    .select("*, channels(id, name, url, thumbnail_url), topics(id, name)")
     .eq("id", id)
     .single();
   if (!video) notFound();
@@ -36,8 +36,10 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="flex flex-col gap-6">
       {video.thumbnail_r2_url && (
-        <img src={video.thumbnail_r2_url} alt={video.title}
-          className="w-full rounded-lg object-cover max-h-72" />
+        <a href={`https://www.youtube.com/watch?v=${video.youtube_id}`} target="_blank" rel="noopener noreferrer">
+          <img src={video.thumbnail_r2_url} alt={video.title}
+            className="w-full rounded-lg object-cover max-h-72 hover:opacity-90 transition" />
+        </a>
       )}
 
       <div className="flex items-start justify-between gap-4">
@@ -45,21 +47,35 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
         <ExportPdfButton href={`/api/pdf/video/${id}`} filename={`video-${id}.pdf`} />
       </div>
 
-      {/* Channel */}
-      {channel && (
-        <Link href={`/channels`}
-          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white w-fit">
-          <span>📺</span>
-          <span>{channel.name}</span>
-        </Link>
-      )}
-      {!channel && meta.channel && (
-        <a href={meta.uploader_url ?? meta.webpage_url} target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white w-fit">
-          <span>📺</span>
-          <span>{meta.channel}</span>
-        </a>
-      )}
+      {/* Channel — uniform avatar row for both tracked channels and topic videos */}
+      {(channel || meta.channel) && (() => {
+        const name = channel?.name ?? meta.channel ?? "";
+        const avatarUrl = channel?.thumbnail_url ?? null;
+        const href = channel ? "/channels" : (meta.uploader_url ?? meta.webpage_url ?? "#");
+        const isExternal = !channel;
+        const initial = name.charAt(0).toUpperCase();
+
+        const avatar = avatarUrl ? (
+          <img src={avatarUrl} alt={name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+        ) : (
+          <div className="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+            {initial}
+          </div>
+        );
+
+        return isExternal ? (
+          <a href={href} target="_blank" rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white w-fit">
+            {avatar}
+            <span>{name}</span>
+          </a>
+        ) : (
+          <Link href={href} className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white w-fit">
+            {avatar}
+            <span>{name}</span>
+          </Link>
+        );
+      })()}
 
       {/* Topic */}
       {topic && (
