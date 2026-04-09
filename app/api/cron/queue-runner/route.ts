@@ -75,16 +75,18 @@ async function transcribeWithGroq(audioUrl: string): Promise<string> {
 const SELF_URL = process.env.NEXT_PUBLIC_APP_URL
   ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
-function triggerNextItem() {
-  console.log(`[queue] triggering next item via ${SELF_URL}`);
-  fetch(`${SELF_URL}/api/cron/queue-runner`, {
+function triggerNextItem(skipId?: string) {
+  const url = `${SELF_URL}/api/cron/queue-runner${skipId ? `?skip=${skipId}` : ""}`;
+  console.log(`[queue] triggering next item via ${url}`);
+  fetch(url, {
     method: "POST",
     headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
   }).then(r => console.log(`[queue] trigger response: ${r.status}`))
     .catch(e => console.error(`[queue] trigger failed:`, e));
 }
-export async function GET() {
-  return processQueue();
+export async function GET(req: NextRequest) {
+  const skip = req.nextUrl.searchParams.get("skip") ?? undefined;
+  return processQueue(skip);
 }
 
 export async function POST(req: NextRequest) {
@@ -92,10 +94,11 @@ export async function POST(req: NextRequest) {
   if (secret !== process.env.QUEUE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return processQueue();
+  const skip = new URL(req.url).searchParams.get("skip") ?? undefined;
+  return processQueue(skip);
 }
 
-async function processQueue() {
+async function processQueue(skipId?: string) {
   // One job at a time
   const { data: inProgress } = await supabaseAdmin
     .from("queue")
@@ -106,14 +109,17 @@ async function processQueue() {
 
   if (inProgress) return NextResponse.json({ ok: true, message: "Job already in progress" });
 
-  // Pick next pending item — also resume yt_dlp_done items (audio ready, whisper not started)
-  const { data: item } = await supabaseAdmin
+  // Pick next item — skip recently failed item to avoid tight retry loops
+  let query = supabaseAdmin
     .from("queue")
     .select("*")
     .in("status", ["pending", "yt_dlp_done"])
     .order("created_at", { ascending: true })
-    .limit(1)
-    .single();
+    .limit(1);
+
+  if (skipId) query = query.neq("id", skipId);
+
+  const { data: item } = await query.single();
 
   if (!item) return NextResponse.json({ ok: true, message: "Queue empty" });
 
@@ -152,7 +158,7 @@ async function processQueue() {
       }).eq("id", item.id);
     }
 
-    triggerNextItem();
+    triggerNextItem(item.id as string);
   }
 
   return NextResponse.json({ ok: true });
