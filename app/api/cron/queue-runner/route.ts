@@ -175,8 +175,17 @@ async function processItem(item: Record<string, unknown>) {
   const transcript = await transcribeWithGroq(result.audio_url);
   const whisperDoneAt = new Date().toISOString();
 
-  // Step 3: Save transcript, delete audio, mark complete
-  await supabaseAdmin.from("videos").update({ transcript, audio_r2_url: null }).eq("youtube_id", item.youtube_id);
+  // Step 3: Summarize transcript via OCI
+  let summary: string | null = null;
+  try {
+    const sumRes = await ociPost("/summarize", { transcript });
+    summary = sumRes.summary ?? null;
+  } catch (e) {
+    console.error("Summarization failed (non-fatal):", e);
+  }
+
+  // Step 4: Save transcript + summary, delete audio, mark complete
+  await supabaseAdmin.from("videos").update({ transcript, summary, audio_r2_url: null }).eq("youtube_id", item.youtube_id);
 
   try {
     await deleteFromR2(`audio/${item.youtube_id}.mp3`);
