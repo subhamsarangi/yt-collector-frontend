@@ -3,6 +3,7 @@ import VideoCard from "@/components/VideoCard";
 import DeleteTopicButton from "@/components/DeleteTopicButton";
 import ExportPdfButton from "@/components/ExportPdfButton";
 import TriggerQueueButton from "@/components/TriggerQueueButton";
+import SearchLog from "@/components/SearchLog";
 import { notFound } from "next/navigation";
 
 export const revalidate = 0;
@@ -42,6 +43,11 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
           <DeleteTopicButton id={id} redirect={true} />
         </div>
       </div>
+
+      {/* Search log */}
+      {topic.search_log && Array.isArray(topic.search_log) && topic.search_log.length > 0 && (
+        <SearchLog log={topic.search_log as Record<string, unknown>[]} />
+      )}
 
       {/* Unified video + queue list */}
       {hasActivity && (

@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
         topic_id = created!.id;
       }
 
-      // Stream from OCI — pipe all events straight through to the client
+      // Stream from OCI — pipe all events through and record them
       await send({ step: "Connecting to search service..." });
       const ociRes = await fetch(`${OCI}/search/enhanced/stream`, {
         method: "POST",
@@ -49,35 +49,42 @@ export async function POST(req: NextRequest) {
         return;
       }
 
-      // Read OCI SSE stream, forward events, collect final results
       const reader = ociRes.body.getReader();
       const dec = new TextDecoder();
       let buf = "";
       let results: Array<{ id: string }> = [];
+      const fullLog: object[] = [];
+
+      const sendAndRecord = async (payload: object) => {
+        await send(payload);
+        fullLog.push(payload);
+      };
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         buf += dec.decode(value, { stream: true });
-
         const lines = buf.split("\n");
         buf = lines.pop() ?? "";
-
         for (const line of lines) {
           if (!line.startsWith("data: ")) continue;
           try {
             const payload = JSON.parse(line.slice(6));
-            // Forward everything from OCI as-is
-            await send(payload);
-            // Capture results when they arrive
+            await sendAndRecord(payload);
             if (payload.results) results = payload.results;
-          } catch { /* skip malformed */ }
+          } catch { /* skip */ }
         }
       }
 
-      // Step — dedup and queue
       await send({ step: `Deduplicating and queuing ${results.length} videos...` });
       let added = 0;
+
+      // helper to send + record
+      const sendAndLog = async (payload: object) => {
+        await send(payload);
+        fullLog.push(payload);
+      };
+
       for (const entry of results) {
         const youtube_id = entry.id;
         if (!youtube_id) continue;
@@ -85,7 +92,7 @@ export async function POST(req: NextRequest) {
         const { data: dupe } = await supabaseAdmin
           .from("videos").select("id").eq("youtube_id", youtube_id).single();
         if (dupe) {
-          await send({ step: `Skipped (already exists): ${youtube_id}` });
+          await sendAndLog({ step: `Skipped (already exists): ${youtube_id}` });
           continue;
         }
 
@@ -96,8 +103,14 @@ export async function POST(req: NextRequest) {
           status: "pending",
         });
         added++;
-        await send({ step: `Queued: ${youtube_id}` });
+        await sendAndLog({ step: `Queued: ${youtube_id}` });
       }
+
+      // Persist full log to topics.search_log
+      await supabaseAdmin
+        .from("topics")
+        .update({ search_log: fullLog })
+        .eq("id", topic_id);
 
       await send({ done: true, topic_id, added });
     } catch (e) {
