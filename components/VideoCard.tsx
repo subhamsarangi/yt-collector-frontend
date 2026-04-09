@@ -30,6 +30,15 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function ErrorModal({ error, onClose }: { error: string; onClose: () => void }) {
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    navigator.clipboard.writeText(error).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
@@ -41,7 +50,15 @@ function ErrorModal({ error, onClose }: { error: string; onClose: () => void }) 
       >
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm font-semibold text-red-400">Error details</span>
-          <button onClick={onClose} className="text-neutral-500 hover:text-white text-lg leading-none">✕</button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleCopy}
+              className="text-xs text-neutral-400 hover:text-white transition"
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+            <button onClick={onClose} className="text-neutral-500 hover:text-white text-lg leading-none">✕</button>
+          </div>
         </div>
         <pre className="text-xs text-red-300 whitespace-pre-wrap break-all font-mono max-h-64 overflow-y-auto">
           {error}
