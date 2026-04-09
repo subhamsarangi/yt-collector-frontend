@@ -72,15 +72,16 @@ async function transcribeWithGroq(audioUrl: string): Promise<string> {
   }).join("\n");
 }
 
-const SELF_URL = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const SELF_URL = process.env.NEXT_PUBLIC_APP_URL
+  ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 function triggerNextItem() {
+  console.log(`[queue] triggering next item via ${SELF_URL}`);
   fetch(`${SELF_URL}/api/cron/queue-runner`, {
     method: "POST",
     headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
-  }).catch(() => null);
+  }).then(r => console.log(`[queue] trigger response: ${r.status}`))
+    .catch(e => console.error(`[queue] trigger failed:`, e));
 }
 export async function GET() {
   return processQueue();
