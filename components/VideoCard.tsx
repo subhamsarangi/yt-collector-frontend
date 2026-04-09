@@ -1,4 +1,6 @@
+"use client";
 import Link from "next/link";
+import { useState } from "react";
 
 type Props = {
   id?: string;
@@ -14,6 +16,7 @@ type Props = {
   borderStatus?: "processing" | "error";
   // queue status label shown when video data isn't available yet
   queueStatus?: string | null;
+  last_error?: string | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -26,8 +29,31 @@ const STATUS_LABEL: Record<string, string> = {
   error_whisper:      "Transcription failed",
 };
 
+function ErrorModal({ error, onClose }: { error: string; onClose: () => void }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      onClick={onClose}
+    >
+      <div
+        className="bg-neutral-900 border border-red-700 rounded-lg p-5 max-w-lg w-full mx-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-semibold text-red-400">Error details</span>
+          <button onClick={onClose} className="text-neutral-500 hover:text-white text-lg leading-none">✕</button>
+        </div>
+        <pre className="text-xs text-red-300 whitespace-pre-wrap break-all font-mono max-h-64 overflow-y-auto">
+          {error}
+        </pre>
+      </div>
+    </div>
+  );
+}
+
 export default function VideoCard({
   id,
+  youtube_id,
   title,
   thumbnail_r2_url,
   published_at,
@@ -36,7 +62,10 @@ export default function VideoCard({
   channel_name,
   borderStatus,
   queueStatus,
+  last_error,
 }: Props) {
+  const [showError, setShowError] = useState(false);
+
   const dateStr = published_at
     ? new Date(published_at).toLocaleDateString(undefined, {
         year: "numeric", month: "short", day: "numeric",
@@ -49,6 +78,17 @@ export default function VideoCard({
       : borderStatus === "processing"
       ? "border border-yellow-600"
       : "";
+
+  const isError = borderStatus === "error";
+
+  // Red dot button — stops link navigation
+  const errorDot = isError && last_error ? (
+    <button
+      onClick={(e) => { e.preventDefault(); e.stopPropagation(); setShowError(true); }}
+      className="absolute top-2 right-2 w-3 h-3 rounded-full bg-red-500 hover:bg-red-400 transition flex-shrink-0"
+      title="View error details"
+    />
+  ) : null;
 
   if (compact) {
     const inner = (
@@ -69,7 +109,9 @@ export default function VideoCard({
   }
 
   const card = (
-    <div className={`flex gap-3 bg-neutral-900 rounded-lg p-3 transition ${borderClass} ${id ? "hover:bg-neutral-800" : ""}`}>
+    <div className={`relative flex gap-3 bg-neutral-900 rounded-lg p-3 transition ${borderClass} ${id ? "hover:bg-neutral-800" : ""}`}>
+      {errorDot}
+
       {/* Thumbnail or placeholder */}
       {thumbnail_r2_url ? (
         <img src={thumbnail_r2_url} alt={title ?? ""} className="w-32 h-20 object-cover rounded flex-shrink-0" />
@@ -78,19 +120,15 @@ export default function VideoCard({
       )}
 
       <div className="flex flex-col gap-1 min-w-0 justify-center">
-        {/* Title or placeholder */}
+        {/* Title or youtube_id fallback */}
         {title ? (
           <p className="font-medium text-sm line-clamp-2">{title}</p>
         ) : (
-          <div className="flex flex-col gap-1.5">
-            <div className="h-3 w-3/4 rounded bg-neutral-800 animate-pulse" />
-            <div className="h-3 w-1/2 rounded bg-neutral-800 animate-pulse" />
-          </div>
+          <p className="text-xs text-neutral-500 font-mono">{youtube_id}</p>
         )}
 
         <div className="flex flex-wrap gap-2 text-xs text-neutral-500 mt-1">
           {channel_name && <span>📺 {channel_name}</span>}
-          {/* Date or placeholder */}
           {dateStr ? (
             <span>🗓 {dateStr}</span>
           ) : (
@@ -107,6 +145,10 @@ export default function VideoCard({
 
         {snippet && <p className="text-xs text-neutral-400 line-clamp-2 mt-1">{snippet}</p>}
       </div>
+
+      {showError && last_error && (
+        <ErrorModal error={last_error} onClose={() => setShowError(false)} />
+      )}
     </div>
   );
 

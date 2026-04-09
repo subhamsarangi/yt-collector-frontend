@@ -71,6 +71,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                     channel_name={channelName}
                     borderStatus={borderStatus}
                     queueStatus={queueItem?.status ?? null}
+                    last_error={queueItem?.last_error ?? null}
                   />
                 );
               }
@@ -82,6 +83,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                   youtube_id={ytId}
                   borderStatus={borderStatus}
                   queueStatus={queueItem?.status ?? null}
+                  last_error={queueItem?.last_error ?? null}
                 />
               );
             });
