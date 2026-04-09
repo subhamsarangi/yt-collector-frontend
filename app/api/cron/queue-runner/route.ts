@@ -72,7 +72,16 @@ async function transcribeWithGroq(audioUrl: string): Promise<string> {
   }).join("\n");
 }
 
-// Called by Supabase webhook on queue INSERT, or manually via GET for testing
+const SELF_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+function triggerNextItem() {
+  fetch(`${SELF_URL}/api/cron/queue-runner`, {
+    method: "POST",
+    headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
+  }).catch(() => null);
+}
 export async function GET() {
   return processQueue();
 }
@@ -121,10 +130,7 @@ async function processQueue() {
       retries,
       last_error: message,
     }).eq("id", item.id);
-    fetch("https://yt-collector-frontend.vercel.app/api/cron/queue-runner", {
-      method: "POST",
-      headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
-    }).catch(() => null);
+    triggerNextItem();
   }
 
   return NextResponse.json({ ok: true });
@@ -182,10 +188,7 @@ async function processItem(item: Record<string, unknown>) {
   await supabaseAdmin.from("processing_logs").update({ whisper_done_at: whisperDoneAt }).eq("queue_id", item.id);
 
   // Trigger next pending item
-  fetch("https://yt-collector-frontend.vercel.app/api/cron/queue-runner", {
-    method: "POST",
-    headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
-  }).catch(() => null);
+  triggerNextItem();
 }
 
 // [COLAB] The following route was used when Colab handled transcription:
