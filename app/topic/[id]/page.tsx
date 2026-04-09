@@ -6,7 +6,7 @@ import QueueItem from "@/components/QueueItem";
 import TriggerQueueButton from "@/components/TriggerQueueButton";
 import { notFound } from "next/navigation";
 
-export const revalidate = 10;
+export const revalidate = 0;
 
 export default async function TopicPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -28,7 +28,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
     .neq("status", "complete")
     .order("created_at", { ascending: true });
 
-  const allPending = (queueItems?.length ?? 0) > 0 && queueItems?.every((i) => i.status === "pending");
+  const allPending = (queueItems?.length ?? 0) > 0 && (queueItems ?? []).every((i) => i.status === "pending");
   const hasActivity = (videos?.length ?? 0) > 0 || (queueItems?.length ?? 0) > 0;
 
   return (
