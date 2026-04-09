@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Search via OCI
-  const res = await fetch(`${OCI}/search`, {
+  const res = await fetch(`${OCI}/search/enhanced`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${OCI_KEY}` },
     body: JSON.stringify({ topic }),
