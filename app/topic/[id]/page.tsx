@@ -48,7 +48,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
             <p className="text-xs text-neutral-500 uppercase tracking-wider">Processing</p>
-            {allPending && <TriggerQueueButton />}
+            <TriggerQueueButton enabled={allPending} />
           </div>
           {queueItems?.map((item) => (
             <QueueItem key={item.id} {...item} />

@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
 
-export default function TriggerQueueButton() {
+export default function TriggerQueueButton({ enabled = true }: { enabled?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
 
   async function handleClick() {
+    if (!enabled) return;
     setLoading(true);
     setToast("");
     try {
@@ -24,8 +25,13 @@ export default function TriggerQueueButton() {
     <>
       <button
         onClick={handleClick}
-        disabled={loading}
-        className="text-sm text-neutral-400 hover:text-white border border-neutral-700 rounded px-3 py-1 disabled:opacity-50 transition whitespace-nowrap"
+        disabled={loading || !enabled}
+        title={!enabled ? "Queue is already processing" : "Start processing pending items"}
+        className={`text-sm border rounded px-3 py-1 transition whitespace-nowrap ${
+          enabled
+            ? "text-neutral-400 hover:text-white border-neutral-700 disabled:opacity-50"
+            : "text-neutral-600 border-neutral-800 cursor-not-allowed"
+        }`}
       >
         {loading ? "Triggering..." : "▶ Start processing"}
       </button>
