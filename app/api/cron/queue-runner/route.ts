@@ -99,16 +99,17 @@ async function processQueue() {
   const { data: inProgress } = await supabaseAdmin
     .from("queue")
     .select("id")
-    .in("status", ["yt_dlp_processing", "yt_dlp_done", "whisper_processing", "whisper_done"])
+    .in("status", ["yt_dlp_processing", "whisper_processing", "whisper_done"])
     .limit(1)
     .single();
 
   if (inProgress) return NextResponse.json({ ok: true, message: "Job already in progress" });
 
+  // Pick next pending item — also resume yt_dlp_done items (audio ready, whisper not started)
   const { data: item } = await supabaseAdmin
     .from("queue")
     .select("*")
-    .eq("status", "pending")
+    .in("status", ["pending", "yt_dlp_done"])
     .order("created_at", { ascending: true })
     .limit(1)
     .single();
@@ -124,12 +125,32 @@ async function processQueue() {
     await Promise.race([processItem(item), timeout]);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
-    const retries = (item.retries || 0) + 1;
-    await supabaseAdmin.from("queue").update({
-      status: retries >= MAX_RETRIES ? "error_ytdlp" : "pending",
-      retries,
-      last_error: message,
-    }).eq("id", item.id);
+
+    // Re-fetch current status — it may have advanced past pending before the timeout
+    const { data: current } = await supabaseAdmin
+      .from("queue").select("status, retries, whisper_retries").eq("id", item.id).single();
+
+    const currentStatus = current?.status ?? item.status;
+    const isWhisperStage = ["yt_dlp_done", "whisper_processing", "whisper_done"].includes(currentStatus);
+
+    if (isWhisperStage) {
+      // yt-dlp succeeded — only retry whisper
+      const whisperRetries = (current?.whisper_retries || 0) + 1;
+      await supabaseAdmin.from("queue").update({
+        status: whisperRetries >= MAX_RETRIES ? "error_whisper" : "yt_dlp_done",
+        whisper_retries: whisperRetries,
+        last_error: message,
+      }).eq("id", item.id);
+    } else {
+      // Failed during yt-dlp stage
+      const retries = (current?.retries || 0) + 1;
+      await supabaseAdmin.from("queue").update({
+        status: retries >= MAX_RETRIES ? "error_ytdlp" : "pending",
+        retries,
+        last_error: message,
+      }).eq("id", item.id);
+    }
+
     triggerNextItem();
   }
 
@@ -137,42 +158,55 @@ async function processQueue() {
 }
 
 async function processItem(item: Record<string, unknown>) {
-  await supabaseAdmin.from("queue").update({ status: "yt_dlp_processing" }).eq("id", item.id);
+  const alreadyDownloaded = item.status === "yt_dlp_done";
 
-  const ytdlpStartedAt = new Date().toISOString();
-  await supabaseAdmin.from("processing_logs").insert({
-    queue_id: item.id,
-    youtube_id: item.youtube_id,
-    ytdlp_started_at: ytdlpStartedAt,
-  });
+  let result: Record<string, unknown>;
 
-  // Step 1: Download via OCI
-  const result = await ociPost("/video", { youtube_id: item.youtube_id });
-  const ytdlpDoneAt = new Date().toISOString();
+  if (alreadyDownloaded) {
+    // Audio already in R2 — fetch existing video record to get audio_r2_url
+    const { data: video } = await supabaseAdmin
+      .from("videos").select("audio_r2_url, metadata").eq("youtube_id", item.youtube_id).single();
+    if (!video?.audio_r2_url) throw new Error("yt_dlp_done but audio_r2_url missing — cannot resume");
+    result = { audio_url: video.audio_r2_url, metadata: video.metadata };
+  } else {
+    await supabaseAdmin.from("queue").update({ status: "yt_dlp_processing" }).eq("id", item.id);
 
-  await supabaseAdmin.from("videos").upsert({
-    youtube_id: item.youtube_id,
-    title: result.metadata.title,
-    description: result.metadata.description,
-    channel_id: item.source === "channel" ? item.source_id : null,
-    topic_id: item.source === "topic" ? item.source_id : null,
-    metadata: result.metadata,
-    thumbnail_r2_url: result.thumbnail_url,
-    audio_r2_url: result.audio_url,
-    published_at: result.metadata.upload_date
-      ? new Date(result.metadata.upload_date.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")).toISOString()
-      : null,
-  }, { onConflict: "youtube_id" });
+    const ytdlpStartedAt = new Date().toISOString();
+    await supabaseAdmin.from("processing_logs").insert({
+      queue_id: item.id,
+      youtube_id: item.youtube_id,
+      ytdlp_started_at: ytdlpStartedAt,
+    });
 
-  await supabaseAdmin.from("queue").update({ status: "yt_dlp_done" }).eq("id", item.id);
-  await supabaseAdmin.from("processing_logs").update({ ytdlp_done_at: ytdlpDoneAt }).eq("queue_id", item.id);
+    // Step 1: Download via OCI
+    result = await ociPost("/video", { youtube_id: item.youtube_id });
+    const meta = result.metadata as Record<string, unknown>;
+    const ytdlpDoneAt = new Date().toISOString();
+
+    await supabaseAdmin.from("videos").upsert({
+      youtube_id: item.youtube_id,
+      title: meta.title,
+      description: meta.description,
+      channel_id: item.source === "channel" ? item.source_id : null,
+      topic_id: item.source === "topic" ? item.source_id : null,
+      metadata: result.metadata,
+      thumbnail_r2_url: result.thumbnail_url,
+      audio_r2_url: result.audio_url,
+      published_at: meta.upload_date
+        ? new Date((meta.upload_date as string).replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")).toISOString()
+        : null,
+    }, { onConflict: "youtube_id" });
+
+    await supabaseAdmin.from("queue").update({ status: "yt_dlp_done" }).eq("id", item.id);
+    await supabaseAdmin.from("processing_logs").update({ ytdlp_done_at: ytdlpDoneAt }).eq("queue_id", item.id);
+  }
 
   // Step 2: Transcribe via Groq Whisper
   await supabaseAdmin.from("queue").update({ status: "whisper_processing" }).eq("id", item.id);
   const whisperStartedAt = new Date().toISOString();
   await supabaseAdmin.from("processing_logs").update({ whisper_started_at: whisperStartedAt }).eq("queue_id", item.id);
 
-  const transcript = await transcribeWithGroq(result.audio_url);
+  const transcript = await transcribeWithGroq(result.audio_url as string);
   const whisperDoneAt = new Date().toISOString();
 
   // Step 3: Summarize transcript via OCI
