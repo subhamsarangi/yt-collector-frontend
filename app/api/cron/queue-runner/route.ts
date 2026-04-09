@@ -142,10 +142,7 @@ async function processQueue() {
     await supabaseAdmin.from("processing_logs").update({ whisper_done_at: whisperDoneAt }).eq("queue_id", item.id);
 
     // Trigger next pending item
-    // [COLAB] Previously: Colab polled for whisper_processing items and called back to /api/whisper/callback
-    // [COLAB] Now handled inline above — no callback needed
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
-    fetch(`${baseUrl}/api/cron/queue-runner`, {
+    fetch("https://yt-collector-frontend.vercel.app/api/cron/queue-runner", {
       method: "POST",
       headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
     }).catch(() => null);
@@ -160,8 +157,7 @@ async function processQueue() {
     }).eq("id", item.id);
 
     // Still trigger next item even on failure
-    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
-    fetch(`${baseUrl}/api/cron/queue-runner`, {
+    fetch("https://yt-collector-frontend.vercel.app/api/cron/queue-runner", {
       method: "POST",
       headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
     }).catch(() => null);
