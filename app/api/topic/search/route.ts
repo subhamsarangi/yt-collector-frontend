@@ -112,6 +112,18 @@ export async function POST(req: NextRequest) {
         .update({ search_log: fullLog })
         .eq("id", topic_id);
 
+      // Auto-start processing — fire and forget
+      if (added > 0) {
+        await sendAndLog({ step: "Starting queue processing..." });
+        const selfUrl = process.env.VERCEL_URL
+          ? `https://${process.env.VERCEL_URL}`
+          : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+        fetch(`${selfUrl}/api/cron/queue-runner`, {
+          method: "POST",
+          headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
+        }).catch(() => null);
+      }
+
       await send({ done: true, topic_id, added });
     } catch (e) {
       await send({ error: e instanceof Error ? e.message : "Unexpected error" });

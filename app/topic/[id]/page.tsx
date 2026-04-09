@@ -28,7 +28,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
     .neq("status", "complete")
     .order("created_at", { ascending: true });
 
-  const allPending = (queueItems?.length ?? 0) > 0 && (queueItems ?? []).every((i) => i.status === "pending");
+  const hasErrors = (queueItems ?? []).some((i) => i.status.startsWith("error_"));
   const hasActivity = (videos?.length ?? 0) > 0 || (queueItems?.length ?? 0) > 0;
 
   return (
@@ -36,7 +36,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{topic.name}</h1>
         <div className="flex items-center gap-3">
-          <TriggerQueueButton enabled={allPending} />
+          {hasErrors && <TriggerQueueButton enabled={true} />}
           {(videos?.length ?? 0) > 0 && (
             <ExportPdfButton href={`/api/pdf/topic/${id}`} filename={`topic-${id}.pdf`} />
           )}
