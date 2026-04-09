@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import Groq from "groq-sdk";
+import { deleteFromR2 } from "@/lib/r2";
 
 const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
@@ -15,13 +17,41 @@ async function ociPost(path: string, body: object) {
   return res.json();
 }
 
+async function transcribeWithGroq(audioUrl: string): Promise<string> {
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+  // Download audio from R2
+  const audioRes = await fetch(audioUrl);
+  if (!audioRes.ok) throw new Error(`Failed to fetch audio: ${audioRes.status}`);
+  const audioBlob = await audioRes.blob();
+  const audioFile = new File([audioBlob], "audio.mp3", { type: "audio/mpeg" });
+
+  const result = await groq.audio.transcriptions.create({
+    file: audioFile,
+    model: "whisper-large-v3",
+    response_format: "verbose_json",
+    language: "en",
+  });
+
+  // Format as timestamped transcript
+  type Segment = { start: number; text: string };
+  const segments = (result as { segments?: Segment[] }).segments ?? [];
+  if (!segments.length) return result.text ?? "";
+
+  return segments.map((seg: Segment) => {
+    const start = Math.floor(seg.start);
+    const m = Math.floor(start / 60).toString().padStart(2, "0");
+    const s = (start % 60).toString().padStart(2, "0");
+    return `[${m}:${s}] ${seg.text.trim()}`;
+  }).join("\n");
+}
+
 // Called by Supabase webhook on queue INSERT, or manually via GET for testing
-export async function GET(req: NextRequest) {
+export async function GET() {
   return processQueue();
 }
 
 export async function POST(req: NextRequest) {
-  // Validate Supabase webhook secret
   const secret = req.headers.get("x-webhook-secret");
   if (secret !== process.env.QUEUE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -30,7 +60,7 @@ export async function POST(req: NextRequest) {
 }
 
 async function processQueue() {
-  // If anything is already being processed, skip — one job at a time
+  // One job at a time
   const { data: inProgress } = await supabaseAdmin
     .from("queue")
     .select("id")
@@ -50,14 +80,9 @@ async function processQueue() {
 
   if (!item) return NextResponse.json({ ok: true, message: "Queue empty" });
 
-  await supabaseAdmin
-    .from("queue")
-    .update({ status: "yt_dlp_processing" })
-    .eq("id", item.id);
+  await supabaseAdmin.from("queue").update({ status: "yt_dlp_processing" }).eq("id", item.id);
 
   const ytdlpStartedAt = new Date().toISOString();
-
-  // Create processing log row
   await supabaseAdmin.from("processing_logs").insert({
     queue_id: item.id,
     youtube_id: item.youtube_id,
@@ -65,6 +90,7 @@ async function processQueue() {
   });
 
   try {
+    // Step 1: Download via OCI
     const result = await ociPost("/video", { youtube_id: item.youtube_id });
     const ytdlpDoneAt = new Date().toISOString();
 
@@ -78,27 +104,41 @@ async function processQueue() {
       thumbnail_r2_url: result.thumbnail_url,
       audio_r2_url: result.audio_url,
       published_at: result.metadata.upload_date
-        ? new Date(
-            result.metadata.upload_date.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")
-          ).toISOString()
+        ? new Date(result.metadata.upload_date.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")).toISOString()
         : null,
     }, { onConflict: "youtube_id" });
 
-    await supabaseAdmin
-      .from("queue")
-      .update({ status: "yt_dlp_done" })
-      .eq("id", item.id);
+    await supabaseAdmin.from("queue").update({ status: "yt_dlp_done" }).eq("id", item.id);
+    await supabaseAdmin.from("processing_logs").update({ ytdlp_done_at: ytdlpDoneAt }).eq("queue_id", item.id);
 
-    // Record yt-dlp completion time
-    await supabaseAdmin
-      .from("processing_logs")
-      .update({ ytdlp_done_at: ytdlpDoneAt })
-      .eq("queue_id", item.id);
+    // Step 2: Transcribe via Groq Whisper
+    await supabaseAdmin.from("queue").update({ status: "whisper_processing" }).eq("id", item.id);
+    const whisperStartedAt = new Date().toISOString();
+    await supabaseAdmin.from("processing_logs").update({ whisper_started_at: whisperStartedAt }).eq("queue_id", item.id);
 
-    await supabaseAdmin
-      .from("queue")
-      .update({ status: "whisper_processing" })
-      .eq("id", item.id);
+    const transcript = await transcribeWithGroq(result.audio_url);
+    const whisperDoneAt = new Date().toISOString();
+
+    // Step 3: Save transcript, delete audio, mark complete
+    await supabaseAdmin.from("videos").update({ transcript, audio_r2_url: null }).eq("youtube_id", item.youtube_id);
+
+    try {
+      await deleteFromR2(`audio/${item.youtube_id}.mp3`);
+    } catch (e) {
+      console.error("R2 delete failed:", e);
+    }
+
+    await supabaseAdmin.from("queue").update({ status: "complete" }).eq("id", item.id);
+    await supabaseAdmin.from("processing_logs").update({ whisper_done_at: whisperDoneAt }).eq("queue_id", item.id);
+
+    // Trigger next pending item
+    // [COLAB] Previously: Colab polled for whisper_processing items and called back to /api/whisper/callback
+    // [COLAB] Now handled inline above — no callback needed
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+    fetch(`${baseUrl}/api/cron/queue-runner`, {
+      method: "POST",
+      headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
+    }).catch(() => null);
 
   } catch (e: unknown) {
     const retries = (item.retries || 0) + 1;
@@ -112,3 +152,8 @@ async function processQueue() {
 
   return NextResponse.json({ ok: true });
 }
+
+// [COLAB] The following route was used when Colab handled transcription:
+// POST /api/whisper/callback — received transcript from Colab, saved it, deleted audio, marked complete
+// It is now superseded by the inline Groq transcription above.
+// File kept at: frontend/app/api/whisper/callback/route.ts
