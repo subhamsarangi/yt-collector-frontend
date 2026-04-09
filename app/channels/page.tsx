@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import VideoCard from "@/components/VideoCard";
 import AddChannelForm from "../../components/AddChannelForm";
 import DeleteChannelButton from "../../components/DeleteChannelButton";
+import BulkImportChannels from "../../components/BulkImportChannels";
 
 export const revalidate = 60;
 
@@ -24,6 +25,7 @@ export default async function ChannelsPage() {
     <div className="flex flex-col gap-8">
       <h1 className="text-xl font-bold">Channels</h1>
       <AddChannelForm />
+      <BulkImportChannels />
 
       {domains.map((domain) => (
         <section key={domain}>
