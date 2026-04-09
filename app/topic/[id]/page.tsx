@@ -2,7 +2,6 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import VideoCard from "@/components/VideoCard";
 import DeleteTopicButton from "@/components/DeleteTopicButton";
 import ExportPdfButton from "@/components/ExportPdfButton";
-import QueueItem from "@/components/QueueItem";
 import TriggerQueueButton from "@/components/TriggerQueueButton";
 import { notFound } from "next/navigation";
 
@@ -58,16 +57,33 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
             return allIds.map((ytId) => {
               const video = videoMap.get(ytId);
               const queueItem = pendingItems.find((q) => q.youtube_id === ytId);
+              const borderStatus: "processing" | "error" | undefined = queueItem
+                ? queueItem.status.startsWith("error_") ? "error" : "processing"
+                : undefined;
+
               if (video) {
                 const raw = video as unknown as { channels?: Array<{ name: string }> | null };
                 const channelName = raw.channels?.[0]?.name ?? null;
-                const borderStatus: "processing" | "error" | undefined = queueItem
-                  ? queueItem.status.startsWith("error_") ? "error" : "processing"
-                  : undefined;
-                return <VideoCard key={ytId} {...video} channel_name={channelName} borderStatus={borderStatus} />;
+                return (
+                  <VideoCard
+                    key={ytId}
+                    {...video}
+                    channel_name={channelName}
+                    borderStatus={borderStatus}
+                    queueStatus={queueItem?.status ?? null}
+                  />
+                );
               }
-              if (queueItem) return <QueueItem key={ytId} {...queueItem} />;
-              return null;
+
+              // Queue-only entry — no video data yet, show placeholders
+              return (
+                <VideoCard
+                  key={ytId}
+                  youtube_id={ytId}
+                  borderStatus={borderStatus}
+                  queueStatus={queueItem?.status ?? null}
+                />
+              );
             });
           })()}
         </div>
