@@ -12,11 +12,10 @@ export default function TriggerQueueButton({ enabled = true }: { enabled?: boole
     try {
       const res = await fetch("/api/queue/trigger", { method: "POST" });
       if (!res.ok) throw new Error("Trigger failed");
-      setToast("Queue triggered.");
-      setTimeout(() => router.refresh(), 3000);
+      router.refresh();
     } catch (e: unknown) {
       setToast(e instanceof Error ? e.message : "Failed to trigger queue");
-      setTimeout(() => router.refresh(), 1000);
+      router.refresh();
     } finally {
       setLoading(false);
       setTimeout(() => setToast(""), 3000);

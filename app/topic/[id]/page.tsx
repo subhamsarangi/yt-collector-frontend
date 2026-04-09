@@ -44,28 +44,32 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      {/* In-progress queue items */}
-      {(queueItems?.length ?? 0) > 0 && (
-        <div className="flex flex-col gap-2">
-          <p className="text-xs text-neutral-500 uppercase tracking-wider">Processing</p>
-          {queueItems?.map((item) => (
-            <QueueItem key={item.id} {...item} />
-          ))}
-        </div>
-      )}
-
-      {/* Completed videos */}
-      {(videos?.length ?? 0) > 0 && (
+      {/* Unified video + queue list */}
+      {hasActivity && (
         <div className="flex flex-col gap-3">
-          {videos?.map((v) => {
-            const raw = v as unknown as { channels?: Array<{ name: string }> | null };
-            const channelName = raw.channels?.[0]?.name ?? null;
-            const queueItem = queueItems?.find((q) => q.youtube_id === v.youtube_id);
-            const borderStatus: "processing" | "error" | undefined = queueItem
-              ? queueItem.status.startsWith("error_") ? "error" : "processing"
-              : undefined;
-            return <VideoCard key={v.id} {...v} channel_name={channelName} borderStatus={borderStatus} />;
-          })}
+          {(() => {
+            const completedVideos = videos ?? [];
+            const pendingItems = queueItems ?? [];
+            const videoMap = new Map(completedVideos.map((v) => [v.youtube_id, v]));
+            const allIds = [
+              ...completedVideos.map((v) => v.youtube_id),
+              ...pendingItems.filter((q) => !videoMap.has(q.youtube_id)).map((q) => q.youtube_id),
+            ];
+            return allIds.map((ytId) => {
+              const video = videoMap.get(ytId);
+              const queueItem = pendingItems.find((q) => q.youtube_id === ytId);
+              if (video) {
+                const raw = video as unknown as { channels?: Array<{ name: string }> | null };
+                const channelName = raw.channels?.[0]?.name ?? null;
+                const borderStatus: "processing" | "error" | undefined = queueItem
+                  ? queueItem.status.startsWith("error_") ? "error" : "processing"
+                  : undefined;
+                return <VideoCard key={ytId} {...video} channel_name={channelName} borderStatus={borderStatus} />;
+              }
+              if (queueItem) return <QueueItem key={ytId} {...queueItem} />;
+              return null;
+            });
+          })()}
         </div>
       )}
 
