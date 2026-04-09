@@ -29,6 +29,11 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
     .order("created_at", { ascending: true });
 
   const hasErrors = (queueItems ?? []).some((i) => i.status.startsWith("error_"));
+  const isProcessing = (queueItems ?? []).some((i) =>
+    ["yt_dlp_processing", "whisper_processing", "whisper_done"].includes(i.status)
+  );
+  const hasPending = (queueItems ?? []).some((i) => ["pending", "yt_dlp_done"].includes(i.status));
+  const canTrigger = (hasErrors || hasPending) && !isProcessing;
   const hasActivity = (videos?.length ?? 0) > 0 || (queueItems?.length ?? 0) > 0;
 
   return (
@@ -36,7 +41,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{topic.name}</h1>
         <div className="flex items-center gap-3">
-          {hasErrors && <TriggerQueueButton enabled={true} />}
+          {hasActivity && <TriggerQueueButton enabled={canTrigger} />}
           {(videos?.length ?? 0) > 0 && (
             <ExportPdfButton href={`/api/pdf/topic/${id}`} filename={`topic-${id}.pdf`} />
           )}
