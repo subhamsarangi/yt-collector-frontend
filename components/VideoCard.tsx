@@ -10,14 +10,21 @@ type Props = {
   compact?: boolean;
   channel_name?: string | null;
   channel_url?: string | null;
+  borderStatus?: "processing" | "error";
 };
 
-export default function VideoCard({ id, title, thumbnail_r2_url, published_at, snippet, compact, channel_name, channel_url }: Props) {
+export default function VideoCard({ id, title, thumbnail_r2_url, published_at, snippet, compact, channel_name, borderStatus }: Props) {
   const dateStr = published_at
     ? new Date(published_at).toLocaleDateString(undefined, {
         year: "numeric", month: "short", day: "numeric",
       })
     : null;
+
+  const borderClass = borderStatus === "error"
+    ? "border border-red-700"
+    : borderStatus === "processing"
+    ? "border border-yellow-600"
+    : "";
 
   if (compact) {
     return (
@@ -32,7 +39,7 @@ export default function VideoCard({ id, title, thumbnail_r2_url, published_at, s
 
   return (
     <Link href={`/video/${id}`}
-      className="flex gap-3 bg-neutral-900 rounded-lg p-3 hover:bg-neutral-800 transition">
+      className={`flex gap-3 bg-neutral-900 rounded-lg p-3 hover:bg-neutral-800 transition ${borderClass}`}>
       {thumbnail_r2_url && (
         <img src={thumbnail_r2_url} alt={title} className="w-32 h-20 object-cover rounded flex-shrink-0" />
       )}

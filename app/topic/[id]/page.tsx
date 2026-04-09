@@ -60,7 +60,11 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
           {videos?.map((v) => {
             const raw = v as unknown as { channels?: Array<{ name: string }> | null };
             const channelName = raw.channels?.[0]?.name ?? null;
-            return <VideoCard key={v.id} {...v} channel_name={channelName} />;
+            const queueItem = queueItems?.find((q) => q.youtube_id === v.youtube_id);
+            const borderStatus: "processing" | "error" | undefined = queueItem
+              ? queueItem.status.startsWith("error_") ? "error" : "processing"
+              : undefined;
+            return <VideoCard key={v.id} {...v} channel_name={channelName} borderStatus={borderStatus} />;
           })}
         </div>
       )}
