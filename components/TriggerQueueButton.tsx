@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function TriggerQueueButton({ enabled = true }: { enabled?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState("");
+  const router = useRouter();
 
   async function handleClick() {
     if (!enabled) return;
