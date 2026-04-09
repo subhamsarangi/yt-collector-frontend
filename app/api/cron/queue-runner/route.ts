@@ -23,7 +23,17 @@ async function transcribeWithGroq(audioUrl: string): Promise<string> {
   // Download audio from R2
   const audioRes = await fetch(audioUrl);
   if (!audioRes.ok) throw new Error(`Failed to fetch audio: ${audioRes.status}`);
+
+  const contentLength = audioRes.headers.get("content-length");
+  if (contentLength && parseInt(contentLength) > 25 * 1024 * 1024) {
+    throw new Error(`Audio file too large for Groq (${Math.round(parseInt(contentLength) / 1024 / 1024)}MB > 25MB)`);
+  }
+
   const audioBlob = await audioRes.blob();
+
+  if (audioBlob.size > 25 * 1024 * 1024) {
+    throw new Error(`Audio file too large for Groq (${Math.round(audioBlob.size / 1024 / 1024)}MB > 25MB)`);
+  }
   const audioFile = new File([audioBlob], "audio.mp3", { type: "audio/mpeg" });
 
   const result = await groq.audio.transcriptions.create({
@@ -148,6 +158,13 @@ async function processQueue() {
       retries,
       last_error: message,
     }).eq("id", item.id);
+
+    // Still trigger next item even on failure
+    const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000";
+    fetch(`${baseUrl}/api/cron/queue-runner`, {
+      method: "POST",
+      headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
+    }).catch(() => null);
   }
 
   return NextResponse.json({ ok: true });
