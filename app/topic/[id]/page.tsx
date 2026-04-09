@@ -2,31 +2,11 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import VideoCard from "@/components/VideoCard";
 import DeleteTopicButton from "@/components/DeleteTopicButton";
 import ExportPdfButton from "@/components/ExportPdfButton";
+import QueueItem from "@/components/QueueItem";
+import TriggerQueueButton from "@/components/TriggerQueueButton";
 import { notFound } from "next/navigation";
 
 export const revalidate = 10;
-
-const STATUS_LABEL: Record<string, string> = {
-  pending:             "Waiting in queue",
-  yt_dlp_processing:   "Downloading...",
-  yt_dlp_done:         "Download done, waiting for transcription",
-  whisper_processing:  "Transcribing...",
-  whisper_done:        "Transcription done",
-  complete:            "Complete",
-  error_ytdlp:         "Download failed",
-  error_whisper:       "Transcription failed",
-};
-
-const STATUS_COLOR: Record<string, string> = {
-  pending:             "text-neutral-500",
-  yt_dlp_processing:   "text-yellow-400",
-  yt_dlp_done:         "text-blue-400",
-  whisper_processing:  "text-yellow-400",
-  whisper_done:        "text-blue-400",
-  complete:            "text-green-400",
-  error_ytdlp:         "text-red-400",
-  error_whisper:       "text-red-400",
-};
 
 export default async function TopicPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -48,6 +28,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
     .neq("status", "complete")
     .order("created_at", { ascending: true });
 
+  const allPending = (queueItems?.length ?? 0) > 0 && queueItems?.every((i) => i.status === "pending");
   const hasActivity = (videos?.length ?? 0) > 0 || (queueItems?.length ?? 0) > 0;
 
   return (
@@ -65,19 +46,12 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       {/* In-progress queue items */}
       {(queueItems?.length ?? 0) > 0 && (
         <div className="flex flex-col gap-2">
-          <p className="text-xs text-neutral-500 uppercase tracking-wider">Processing</p>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-neutral-500 uppercase tracking-wider">Processing</p>
+            {allPending && <TriggerQueueButton />}
+          </div>
           {queueItems?.map((item) => (
-            <div key={item.id} className="flex items-center justify-between bg-neutral-900 rounded-lg px-4 py-3">
-              <span className="text-xs text-neutral-400 font-mono">{item.youtube_id}</span>
-              <span className={`text-xs ${STATUS_COLOR[item.status] ?? "text-neutral-400"}`}>
-                {STATUS_LABEL[item.status] ?? item.status}
-              </span>
-              {item.last_error && (
-                <span className="text-xs text-red-400 truncate max-w-xs ml-2" title={item.last_error}>
-                  {item.last_error}
-                </span>
-              )}
-            </div>
+            <QueueItem key={item.id} {...item} />
           ))}
         </div>
       )}
