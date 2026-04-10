@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
 
+export async function GET() {
+  const res = await fetch(`${OCI}/cookies/info`, {
+    headers: { Authorization: `Bearer ${OCI_KEY}` },
+  });
+  if (!res.ok) return NextResponse.json({ exists: false });
+  return NextResponse.json(await res.json());
+}
+
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
