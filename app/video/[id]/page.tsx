@@ -153,7 +153,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
             {video.summary.split("\n").filter((l: string) => l.trim()).map((line: string, i: number) => (
               <li key={i} className="flex items-start gap-2">
                 <span className="text-neutral-600 flex-shrink-0 mt-1 text-xs">•</span>
-                <span className="text-sm text-neutral-300 leading-relaxed" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                <span className="text-sm text-neutral-300 leading-relaxed" style={{ fontFamily: "var(--font-lora)" }}>
                   {line.replace(/^[•\-]\s*/, "")}
                 </span>
               </li>
