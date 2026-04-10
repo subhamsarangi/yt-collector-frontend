@@ -1,12 +1,14 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { getUserRole } from "@/lib/supabase/userRole";
 import Link from "next/link";
 import TopicSearchForm from "@/components/TopicSearchForm";
-
 import DeleteTopicButton from "@/components/DeleteTopicButton";
 
 export const revalidate = 60;
 
 export default async function TopicsPage() {
+  const role = await getUserRole();
+  const isOwner = role === "owner";
   const { data: topics } = await supabaseAdmin
     .from("topics")
     .select("id, name, created_at")
@@ -24,7 +26,7 @@ export default async function TopicsPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">Topics</h1>
-      <TopicSearchForm />
+      {isOwner && <TopicSearchForm />}
       <div className="flex flex-col gap-2">
         {topics?.map((t) => (
           <Link key={t.id} href={`/topic/${t.id}`}
@@ -32,7 +34,7 @@ export default async function TopicsPage() {
             <span className="font-medium">{t.name}</span>
             <div className="flex items-center gap-3">
               <span className="text-xs text-neutral-500">{countMap[t.id] ?? 0} videos</span>
-              <DeleteTopicButton id={t.id} />
+              {isOwner && <DeleteTopicButton id={t.id} />}
             </div>
           </Link>
         ))}

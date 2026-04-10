@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { getUserRole } from "@/lib/supabase/userRole";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import ExportPdfButton from "@/components/ExportPdfButton";
@@ -22,6 +23,8 @@ function formatDateTime(iso: string) {
 
 export default async function VideoPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const role = await getUserRole();
+  const isOwner = role === "owner";
 
   const { data: video } = await supabaseAdmin
     .from("videos")
@@ -56,7 +59,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
       <div className="flex items-start justify-between gap-4">
         <h1 className="text-lg font-bold leading-snug">{video.title}</h1>
         <div className="flex items-center gap-2 flex-shrink-0">
-          <DeleteVideoButton id={id} />
+          {isOwner && <DeleteVideoButton id={id} />}
           <ExportPdfButton href={`/api/pdf/video/${id}`} filename={`video-${id}.pdf`} />
         </div>
       </div>

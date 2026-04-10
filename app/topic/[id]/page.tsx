@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { getUserRole } from "@/lib/supabase/userRole";
 import VideoCard from "@/components/VideoCard";
 import DeleteTopicButton from "@/components/DeleteTopicButton";
 import ExportPdfButton from "@/components/ExportPdfButton";
@@ -10,6 +11,8 @@ export const revalidate = 0;
 
 export default async function TopicPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const role = await getUserRole();
+  const isOwner = role === "owner";
 
   const { data: topic } = await supabaseAdmin.from("topics").select("*").eq("id", id).single();
   if (!topic) notFound();
@@ -41,11 +44,11 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{topic.name}</h1>
         <div className="flex items-center gap-3">
-          {hasActivity && <TriggerQueueButton enabled={canTrigger} />}
+          {isOwner && hasActivity && <TriggerQueueButton enabled={canTrigger} />}
           {(videos?.length ?? 0) > 0 && (
             <ExportPdfButton href={`/api/pdf/topic/${id}`} filename={`topic-${id}.pdf`} />
           )}
-          <DeleteTopicButton id={id} redirect={true} />
+          {isOwner && <DeleteTopicButton id={id} redirect={true} />}
         </div>
       </div>
 

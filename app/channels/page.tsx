@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { getUserRole } from "@/lib/supabase/userRole";
 import VideoCard from "@/components/VideoCard";
 import AddChannelForm from "../../components/AddChannelForm";
 import DeleteChannelButton from "../../components/DeleteChannelButton";
@@ -7,6 +8,8 @@ import BulkImportChannels from "../../components/BulkImportChannels";
 export const revalidate = 60;
 
 export default async function ChannelsPage() {
+  const role = await getUserRole();
+  const isOwner = role === "owner";
   const { data: channels } = await supabaseAdmin
     .from("channels")
     .select("id, name, url, domain, thumbnail_url")
@@ -24,8 +27,8 @@ export default async function ChannelsPage() {
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-xl font-bold">Channels</h1>
-      <AddChannelForm />
-      <BulkImportChannels />
+      {isOwner && <AddChannelForm />}
+      {isOwner && <BulkImportChannels />}
 
       {domains.map((domain) => (
         <section key={domain}>
@@ -49,7 +52,7 @@ export default async function ChannelsPage() {
                       className="font-medium text-sm hover:text-neutral-300 truncate flex-1">
                       {channel.name}
                     </a>
-                    <DeleteChannelButton id={channel.id} />
+                    {isOwner && <DeleteChannelButton id={channel.id} />}
                   </div>
                   {/* Latest videos */}
                   <div className="flex flex-col gap-0 divide-y divide-neutral-800 flex-1">

@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PUBLIC_PATHS = ["/", "/login", "/auth/callback", "/pending"];
+const PUBLIC_PATHS = ["/login", "/auth/callback", "/pending"];
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Allow public paths and all API routes
   if (
-    PUBLIC_PATHS.includes(pathname) ||
+    PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p + "/")) ||
     pathname.startsWith("/api/") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/favicon")
@@ -17,7 +16,6 @@ export async function proxy(req: NextRequest) {
   }
 
   const res = NextResponse.next();
-
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -32,8 +30,23 @@ export async function proxy(req: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) {
-    return NextResponse.redirect(new URL("/login", req.url));
+  if (!user) return NextResponse.redirect(new URL("/login", req.url));
+
+  // Check approval status via service role
+  const { createClient } = await import("@supabase/supabase-js");
+  const admin = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+  const { data: profile } = await admin
+    .from("users")
+    .select("approved, role")
+    .eq("id", user.id)
+    .single();
+
+  // Unknown user (not yet in users table) or not approved → pending
+  if (!profile || (!profile.approved && profile.role !== "owner")) {
+    return NextResponse.redirect(new URL("/pending", req.url));
   }
 
   return res;
