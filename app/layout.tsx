@@ -17,6 +17,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${geist.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100 pb-16 md:pb-0">
         <TopNav />
+        {/* Mobile header — logo only, visible on small screens */}
+        <header className="flex md:hidden items-center gap-2 px-4 py-3 bg-neutral-900 border-b border-neutral-800">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="YT Collector" width={24} height={24} className="rounded" />
+          <span className="font-bold text-sm">YT Collector</span>
+        </header>
         <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">{children}</main>
         <BottomNav />
       </body>
