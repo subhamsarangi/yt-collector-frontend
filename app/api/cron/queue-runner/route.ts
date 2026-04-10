@@ -274,7 +274,7 @@ async function processItem(item: Record<string, unknown>) {
     .update({ whisper_started_at: whisperStartedAt })
     .eq("queue_id", item.id);
 
-  step("Whisper transcription started via Groq");
+  step("Whisper transcription started via Groq (whisper-large-v3-turbo)");
   await saveSteps();
 
   const audioUrl = result.audio_url as string;
@@ -295,7 +295,7 @@ async function processItem(item: Record<string, unknown>) {
   // Step 3: Summarize
   let summary: string | null = null;
   try {
-    step("Summarization started via Groq");
+    step("Summarization started via Groq (moonshotai/kimi-k2-instruct)");
     await saveSteps();
     const sumRes = await ociPost("/summarize", { transcript });
     summary = sumRes.summary ?? null;
