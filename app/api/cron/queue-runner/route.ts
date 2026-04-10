@@ -47,7 +47,7 @@ async function transcribeWithGroq(audioUrl: string, offsetSeconds = 0): Promise<
   const audioFile = new File([audioBlob], "audio.mp3", { type: "audio/mpeg" });
   const result = await groq.audio.transcriptions.create({
     file: audioFile,
-    model: "whisper-large-v3",
+    model: "whisper-large-v3-turbo",
     response_format: "verbose_json",
     language: "en",
   });
@@ -254,7 +254,12 @@ async function processItem(item: Record<string, unknown>) {
   step("Whisper transcription started via Groq");
   await saveSteps();
 
-  const chunks = (result.chunks as Array<{ url: string; offset: number }>) ?? [{ url: result.audio_url as string, offset: 0 }];
+  const MAX_CHUNKS = 2; // cap at 38 min of transcription (2 × 19-min chunks)
+  const allChunks = (result.chunks as Array<{ url: string; offset: number }>) ?? [{ url: result.audio_url as string, offset: 0 }];
+  const chunks = allChunks.slice(0, MAX_CHUNKS);
+  if (allChunks.length > MAX_CHUNKS) {
+    step(`Video has ${allChunks.length} chunks — transcribing first ${MAX_CHUNKS} only (38 min cap)`);
+  }
   const transcript = await transcribeChunks(chunks, (i, total) => {
     step(`Transcribing chunk ${i}/${total}...`);
   });
@@ -263,8 +268,8 @@ async function processItem(item: Record<string, unknown>) {
   step(`Transcription done — ${lineCount} segments across ${chunks.length} chunk(s)`);
   await saveSteps();
 
-  // Clean up chunk files from R2
-  for (const chunk of chunks) {
+  // Clean up ALL chunk files from R2 (including skipped ones beyond the cap)
+  for (const chunk of allChunks) {
     const key = chunk.url.split("/").slice(-2).join("/"); // audio/id_chunk000.mp3
     try { await deleteFromR2(key); } catch { /* non-fatal */ }
   }
