@@ -5,7 +5,7 @@ import ExportPdfButton from "@/components/ExportPdfButton";
 import DeleteVideoButton from "@/components/DeleteVideoButton";
 import ProcessingLog from "@/components/ProcessingLog";
 
-export const revalidate = 60;
+export const revalidate = 0;
 
 function formatDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
@@ -37,11 +37,12 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
 
   // Fetch processing log via queue record
   const { data: queueRow } = await supabaseAdmin
-    .from("queue").select("id").eq("youtube_id", video.youtube_id).order("created_at", { ascending: false }).limit(1).single();
+    .from("queue").select("id, status").eq("youtube_id", video.youtube_id).order("created_at", { ascending: false }).limit(1).single();
   const { data: procLog } = queueRow
     ? await supabaseAdmin.from("processing_logs").select("steps").eq("queue_id", queueRow.id).single()
     : { data: null };
   const processingSteps = (procLog?.steps as Array<{ ts: string; text: string; ok?: boolean }>) ?? [];
+  const queueStatus = queueRow?.status ?? null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -165,7 +166,13 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
       )}
 
       {/* Processing log */}
-      {processingSteps.length > 0 && <ProcessingLog steps={processingSteps} />}
+      {(processingSteps.length > 0 || queueStatus) && (
+        <ProcessingLog
+          videoId={id}
+          initialSteps={processingSteps}
+          initialStatus={queueStatus}
+        />
+      )}
 
       {/* Transcript */}
       {lines.length > 0 && (

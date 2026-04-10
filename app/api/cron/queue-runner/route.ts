@@ -26,12 +26,11 @@ async function ociPost(path: string, body: object) {
   }
 }
 
-async function transcribeWithGroq(audioUrl: string): Promise<string> {
+async function transcribeWithGroq(audioUrl: string, offsetSeconds = 0): Promise<string> {
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-  // Download audio from R2 with timeout
   const audioController = new AbortController();
-  const audioTimer = setTimeout(() => audioController.abort(), 30000); // 30s max download
+  const audioTimer = setTimeout(() => audioController.abort(), 60000);
   let audioRes: Response;
   try {
     audioRes = await fetch(audioUrl, { signal: audioController.signal });
@@ -40,18 +39,12 @@ async function transcribeWithGroq(audioUrl: string): Promise<string> {
   }
   if (!audioRes.ok) throw new Error(`Failed to fetch audio: ${audioRes.status}`);
 
-  const contentLength = audioRes.headers.get("content-length");
-  if (contentLength && parseInt(contentLength) > 25 * 1024 * 1024) {
-    throw new Error(`Audio file too large for Groq (${Math.round(parseInt(contentLength) / 1024 / 1024)}MB > 25MB)`);
-  }
-
   const audioBlob = await audioRes.blob();
-
   if (audioBlob.size > 25 * 1024 * 1024) {
-    throw new Error(`Audio file too large for Groq (${Math.round(audioBlob.size / 1024 / 1024)}MB > 25MB)`);
+    throw new Error(`Audio chunk too large for Groq (${Math.round(audioBlob.size / 1024 / 1024)}MB > 25MB)`);
   }
-  const audioFile = new File([audioBlob], "audio.mp3", { type: "audio/mpeg" });
 
+  const audioFile = new File([audioBlob], "audio.mp3", { type: "audio/mpeg" });
   const result = await groq.audio.transcriptions.create({
     file: audioFile,
     model: "whisper-large-v3",
@@ -59,17 +52,29 @@ async function transcribeWithGroq(audioUrl: string): Promise<string> {
     language: "en",
   });
 
-  // Format as timestamped transcript
   type Segment = { start: number; text: string };
   const segments = (result as { segments?: Segment[] }).segments ?? [];
   if (!segments.length) return result.text ?? "";
 
   return segments.map((seg: Segment) => {
-    const start = Math.floor(seg.start);
+    const start = Math.floor(seg.start + offsetSeconds);
     const m = Math.floor(start / 60).toString().padStart(2, "0");
     const s = (start % 60).toString().padStart(2, "0");
     return `[${m}:${s}] ${seg.text.trim()}`;
   }).join("\n");
+}
+
+async function transcribeChunks(
+  chunks: Array<{ url: string; offset: number }>,
+  onChunk: (i: number, total: number) => void
+): Promise<string> {
+  const parts: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    onChunk(i + 1, chunks.length);
+    const part = await transcribeWithGroq(chunks[i].url, chunks[i].offset);
+    parts.push(part);
+  }
+  return parts.join("\n");
 }
 
 const SELF_URL = process.env.NEXT_PUBLIC_APP_URL
@@ -229,18 +234,25 @@ async function processItem(item: Record<string, unknown>) {
     step("Metadata and thumbnail saved — video visible in UI");
     await saveSteps();
 
-    // Step 1b: Audio download (slow for long videos — separate call)
-    step("Starting audio download...");
+    // Step 1b: Audio download (slow for long videos — chunked if > 20 min)
+    const duration = (meta.duration as number) ?? 0;
+    const isLong = duration > 20 * 60;
+    step(`Starting audio download... (${Math.round(duration / 60)} min${isLong ? ", will be chunked" : ""})`);
     await saveSteps();
-    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id });
+    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration });
     const ytdlpDoneAt = new Date().toISOString();
-    step("Audio downloaded and uploaded to R2");
+
+    const chunks: Array<{ url: string; offset: number }> = audioResult.chunked
+      ? audioResult.chunks.map((c: { url: string; offset: number }) => c)
+      : [{ url: audioResult.audio_url, offset: 0 }];
+
+    step(`Audio ready — ${chunks.length} chunk(s) uploaded to R2`);
 
     await supabaseAdmin.from("videos")
-      .update({ audio_r2_url: audioResult.audio_url })
+      .update({ audio_r2_url: audioResult.chunked ? null : audioResult.audio_url })
       .eq("youtube_id", item.youtube_id);
 
-    result = { ...result, audio_url: audioResult.audio_url };
+    result = { ...result, chunks, audio_url: audioResult.audio_url };
 
     await supabaseAdmin.from("queue").update({ status: "yt_dlp_done" }).eq("id", item.id);
     await supabaseAdmin.from("processing_logs")
@@ -260,11 +272,20 @@ async function processItem(item: Record<string, unknown>) {
   step("Whisper transcription started via Groq");
   await saveSteps();
 
-  const transcript = await transcribeWithGroq(result.audio_url as string);
+  const chunks = (result.chunks as Array<{ url: string; offset: number }>) ?? [{ url: result.audio_url as string, offset: 0 }];
+  const transcript = await transcribeChunks(chunks, (i, total) => {
+    step(`Transcribing chunk ${i}/${total}...`);
+  });
   const whisperDoneAt = new Date().toISOString();
   const lineCount = transcript.split("\n").filter(Boolean).length;
-  step(`Transcription done — ${lineCount} segments`);
+  step(`Transcription done — ${lineCount} segments across ${chunks.length} chunk(s)`);
   await saveSteps();
+
+  // Clean up chunk files from R2
+  for (const chunk of chunks) {
+    const key = chunk.url.split("/").slice(-2).join("/"); // audio/id_chunk000.mp3
+    try { await deleteFromR2(key); } catch { /* non-fatal */ }
+  }
 
   // Step 3: Summarize
   let summary: string | null = null;
@@ -284,8 +305,12 @@ async function processItem(item: Record<string, unknown>) {
   step("Transcript and summary saved to database");
 
   try {
-    await deleteFromR2(`audio/${item.youtube_id}.mp3`);
-    step("Audio file deleted from R2");
+    // For single-file (non-chunked) videos, delete the audio from R2
+    const singleAudioUrl = result.audio_url as string | null;
+    if (singleAudioUrl && (result.chunks as Array<unknown>).length === 1) {
+      await deleteFromR2(`audio/${item.youtube_id}.mp3`);
+      step("Audio file deleted from R2");
+    }
   } catch (e) {
     step(`R2 audio delete failed (non-fatal): ${e instanceof Error ? e.message : String(e)}`, false);
   }
