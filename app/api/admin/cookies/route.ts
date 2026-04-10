@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
+import { requireOwner } from "@/lib/supabase/requireOwner";
 
 const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
 
 export async function GET() {
+  const denied = await requireOwner();
+  if (denied) return denied;
   const res = await fetch(`${OCI}/cookies/info`, {
     headers: { Authorization: `Bearer ${OCI_KEY}` },
   });
@@ -12,6 +15,8 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireOwner();
+  if (denied) return denied;
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   if (!file) return NextResponse.json({ error: "No file" }, { status: 400 });

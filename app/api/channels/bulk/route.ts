@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { requireOwner } from "@/lib/supabase/requireOwner";
 
 const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
@@ -16,6 +17,8 @@ function extractYouTubeUrls(text: string): string[] {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireOwner();
+  if (denied) return denied;
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
   if (!file) return new Response(JSON.stringify({ error: "No file" }), { status: 400 });

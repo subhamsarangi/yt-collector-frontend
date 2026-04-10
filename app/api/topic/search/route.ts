@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { requireOwner } from "@/lib/supabase/requireOwner";
 
 const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
@@ -9,6 +10,8 @@ function sse(data: object) {
 }
 
 export async function POST(req: NextRequest) {
+  const denied = await requireOwner();
+  if (denied) return denied;
   const { topic } = await req.json();
   if (!topic) {
     return new Response(JSON.stringify({ error: "Missing topic" }), { status: 400 });
