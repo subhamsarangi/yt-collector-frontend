@@ -223,7 +223,7 @@ async function processItem(item: Record<string, unknown>) {
     await saveSteps();
     const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id });
     const ytdlpDoneAt = new Date().toISOString();
-    step("Audio downloaded and uploaded to R2");
+    step(`Audio downloaded and uploaded to R2 (${audioResult.size_mb ?? "?"}MB)`);
 
     await supabaseAdmin.from("videos")
       .update({ audio_r2_url: audioResult.audio_url })
