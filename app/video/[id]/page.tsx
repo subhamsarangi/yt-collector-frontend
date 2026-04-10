@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import ExportPdfButton from "@/components/ExportPdfButton";
 import DeleteVideoButton from "@/components/DeleteVideoButton";
+import ProcessingLog from "@/components/ProcessingLog";
 
 export const revalidate = 60;
 
@@ -33,6 +34,14 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   const lines = video.transcript?.split("\n") ?? [];
   const channel = (video as any).channels;
   const topic = (video as any).topics;
+
+  // Fetch processing log via queue record
+  const { data: queueRow } = await supabaseAdmin
+    .from("queue").select("id").eq("youtube_id", video.youtube_id).order("created_at", { ascending: false }).limit(1).single();
+  const { data: procLog } = queueRow
+    ? await supabaseAdmin.from("processing_logs").select("steps").eq("queue_id", queueRow.id).single()
+    : { data: null };
+  const processingSteps = (procLog?.steps as Array<{ ts: string; text: string; ok?: boolean }>) ?? [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -154,6 +163,9 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
           </div>
         </section>
       )}
+
+      {/* Processing log */}
+      {processingSteps.length > 0 && <ProcessingLog steps={processingSteps} />}
 
       {/* Transcript */}
       {lines.length > 0 && (

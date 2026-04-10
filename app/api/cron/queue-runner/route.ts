@@ -158,6 +158,15 @@ async function processQueue(skipId?: string) {
       }).eq("id", item.id);
     }
 
+    // Append failure step to existing processing log
+    const { data: logRow } = await supabaseAdmin
+      .from("processing_logs").select("steps").eq("queue_id", item.id).single();
+    if (logRow) {
+      const updatedSteps = [...((logRow.steps as Array<unknown>) ?? []),
+        { ts: new Date().toISOString(), text: `Failed: ${message}`, ok: false }];
+      await supabaseAdmin.from("processing_logs").update({ steps: updatedSteps }).eq("queue_id", item.id);
+    }
+
     triggerNextItem(item.id as string);
   }
 
@@ -166,11 +175,21 @@ async function processQueue(skipId?: string) {
 
 async function processItem(item: Record<string, unknown>) {
   const alreadyDownloaded = item.status === "yt_dlp_done";
+  const steps: Array<{ ts: string; text: string; ok?: boolean }> = [];
+  const step = (text: string, ok = true) => {
+    steps.push({ ts: new Date().toISOString(), text, ok });
+    console.log(`[queue:${item.youtube_id}] ${text}`);
+  };
+
+  const saveSteps = () =>
+    supabaseAdmin.from("processing_logs")
+      .update({ steps })
+      .eq("queue_id", item.id);
 
   let result: Record<string, unknown>;
 
   if (alreadyDownloaded) {
-    // Audio already in R2 — fetch existing video record to get audio_r2_url
+    step("Resuming from yt_dlp_done — audio already in R2");
     const { data: video } = await supabaseAdmin
       .from("videos").select("audio_r2_url, metadata").eq("youtube_id", item.youtube_id).single();
     if (!video?.audio_r2_url) throw new Error("yt_dlp_done but audio_r2_url missing — cannot resume");
@@ -179,16 +198,20 @@ async function processItem(item: Record<string, unknown>) {
     await supabaseAdmin.from("queue").update({ status: "yt_dlp_processing" }).eq("id", item.id);
 
     const ytdlpStartedAt = new Date().toISOString();
-    await supabaseAdmin.from("processing_logs").insert({
+    const { data: logRow } = await supabaseAdmin.from("processing_logs").insert({
       queue_id: item.id,
       youtube_id: item.youtube_id,
       ytdlp_started_at: ytdlpStartedAt,
-    });
+      steps: [],
+    }).select("id").single();
 
-    // Step 1: Download via OCI
+    step("yt-dlp started — downloading metadata, thumbnail and audio via OCI");
+    await saveSteps();
+
     result = await ociPost("/video", { youtube_id: item.youtube_id });
     const meta = result.metadata as Record<string, unknown>;
     const ytdlpDoneAt = new Date().toISOString();
+    step(`yt-dlp done — title: "${meta.title}", duration: ${meta.duration}s`);
 
     await supabaseAdmin.from("videos").upsert({
       youtube_id: item.youtube_id,
@@ -204,40 +227,61 @@ async function processItem(item: Record<string, unknown>) {
         : null,
     }, { onConflict: "youtube_id" });
 
+    step("Video record upserted to database");
     await supabaseAdmin.from("queue").update({ status: "yt_dlp_done" }).eq("id", item.id);
-    await supabaseAdmin.from("processing_logs").update({ ytdlp_done_at: ytdlpDoneAt }).eq("queue_id", item.id);
+    await supabaseAdmin.from("processing_logs")
+      .update({ ytdlp_done_at: ytdlpDoneAt, steps })
+      .eq("queue_id", item.id);
+
+    void logRow; // used implicitly via queue_id
   }
 
-  // Step 2: Transcribe via Groq Whisper
+  // Step 2: Transcribe
   await supabaseAdmin.from("queue").update({ status: "whisper_processing" }).eq("id", item.id);
   const whisperStartedAt = new Date().toISOString();
-  await supabaseAdmin.from("processing_logs").update({ whisper_started_at: whisperStartedAt }).eq("queue_id", item.id);
+  await supabaseAdmin.from("processing_logs")
+    .update({ whisper_started_at: whisperStartedAt })
+    .eq("queue_id", item.id);
+
+  step("Whisper transcription started via Groq");
+  await saveSteps();
 
   const transcript = await transcribeWithGroq(result.audio_url as string);
   const whisperDoneAt = new Date().toISOString();
+  const lineCount = transcript.split("\n").filter(Boolean).length;
+  step(`Transcription done — ${lineCount} segments`);
+  await saveSteps();
 
-  // Step 3: Summarize transcript via OCI
+  // Step 3: Summarize
   let summary: string | null = null;
   try {
+    step("Summarization started via Groq");
+    await saveSteps();
     const sumRes = await ociPost("/summarize", { transcript });
     summary = sumRes.summary ?? null;
+    step(`Summarization done — ${summary?.split("\n").length ?? 0} bullet points`);
   } catch (e) {
-    console.error("Summarization failed (non-fatal):", e);
+    step(`Summarization failed (non-fatal): ${e instanceof Error ? e.message : String(e)}`, false);
+    console.error("Summarization failed:", e);
   }
 
-  // Step 4: Save transcript + summary, delete audio, mark complete
+  // Step 4: Save and complete
   await supabaseAdmin.from("videos").update({ transcript, summary, audio_r2_url: null }).eq("youtube_id", item.youtube_id);
+  step("Transcript and summary saved to database");
 
   try {
     await deleteFromR2(`audio/${item.youtube_id}.mp3`);
+    step("Audio file deleted from R2");
   } catch (e) {
-    console.error("R2 delete failed:", e);
+    step(`R2 audio delete failed (non-fatal): ${e instanceof Error ? e.message : String(e)}`, false);
   }
 
   await supabaseAdmin.from("queue").update({ status: "complete" }).eq("id", item.id);
-  await supabaseAdmin.from("processing_logs").update({ whisper_done_at: whisperDoneAt }).eq("queue_id", item.id);
+  step("Processing complete ✓");
+  await supabaseAdmin.from("processing_logs")
+    .update({ whisper_done_at: whisperDoneAt, steps })
+    .eq("queue_id", item.id);
 
-  // Trigger next pending item
   triggerNextItem();
 }
 
