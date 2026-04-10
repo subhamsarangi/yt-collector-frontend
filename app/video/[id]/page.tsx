@@ -5,6 +5,7 @@ import Link from "next/link";
 import ExportPdfButton from "@/components/ExportPdfButton";
 import DeleteVideoButton from "@/components/DeleteVideoButton";
 import ProcessingLog from "@/components/ProcessingLog";
+import RetryVideoButton from "@/components/RetryVideoButton";
 
 export const revalidate = 0;
 
@@ -185,13 +186,18 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
         </section>
       )}
 
-      {/* Processing log */}
+      {/* Processing log + retry */}
       {(processingSteps.length > 0 || queueStatus) && (
-        <ProcessingLog
-          videoId={id}
-          initialSteps={processingSteps}
-          initialStatus={queueStatus}
-        />
+        <div className="flex flex-col gap-2">
+          <ProcessingLog
+            videoId={id}
+            initialSteps={processingSteps}
+            initialStatus={queueStatus}
+          />
+          {isOwner && queueStatus && (
+            <RetryVideoButton videoId={id} queueStatus={queueStatus} />
+          )}
+        </div>
       )}
 
       {/* Transcript */}
