@@ -217,6 +217,17 @@ async function processItem(item: Record<string, unknown>) {
     step("Metadata and thumbnail saved — video visible in UI");
     await saveSteps();
 
+    // Channel-sourced videos: metadata only, no audio/transcription
+    if (item.source === "channel") {
+      await supabaseAdmin.from("queue").update({ status: "complete", retry_after: null }).eq("id", item.id);
+      step("Channel video — skipping audio/transcription (metadata only) ✓");
+      await supabaseAdmin.from("processing_logs")
+        .update({ ytdlp_done_at: new Date().toISOString(), steps })
+        .eq("queue_id", item.id);
+      void logRow;
+      return;
+    }
+
     // Step 1b: Audio download (capped at 38 min via --download-sections)
     const duration = (meta.duration as number) ?? 0;
     step(`Starting audio download... (video is ${Math.round(duration / 60)} min, downloading first 38 min max)`);
