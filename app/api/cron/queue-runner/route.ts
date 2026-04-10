@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import Groq from "groq-sdk";
 import { deleteFromR2 } from "@/lib/r2";
 
-export const maxDuration = 300; // Match Vercel cron max; internal 55s soft timeout handles regular calls
+export const maxDuration = 300; // Vercel max; internal 270s soft timeout leaves 30s buffer
 
 const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
@@ -102,12 +102,17 @@ async function processQueue() {
   if (!item) return NextResponse.json({ ok: true, message: "Queue empty" });
 
   // Wrap in a 55s timeout so we never silently die
-  const timeout = new Promise<never>((_, reject) =>
-    setTimeout(() => reject(new Error("Function timeout after 55s — video may be too long")), 55000)
-  );
+  let timeoutHandle: ReturnType<typeof setTimeout>;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutHandle = setTimeout(
+      () => reject(new Error("Function timeout after 270s")),
+      270000
+    );
+  });
 
   try {
     await Promise.race([processItem(item), timeout]);
+    clearTimeout(timeoutHandle!);
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : String(e);
 
@@ -116,6 +121,10 @@ async function processQueue() {
       .from("queue").select("status, retries, whisper_retries").eq("id", item.id).single();
 
     const currentStatus = current?.status ?? item.status;
+
+    // If already complete, the timeout fired after success — don't overwrite
+    if (currentStatus === "complete") return NextResponse.json({ ok: true });
+
     const isWhisperStage = ["yt_dlp_done", "whisper_processing", "whisper_done"].includes(currentStatus);
 
     if (isWhisperStage) {
