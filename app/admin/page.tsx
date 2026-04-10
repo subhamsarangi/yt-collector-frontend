@@ -3,6 +3,7 @@ import { getUserRole } from "@/lib/supabase/userRole";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import CookieUpload from "@/components/CookieUpload";
+import RebootInstanceButton from "@/components/RebootInstanceButton";
 
 export const revalidate = 0;
 
@@ -75,6 +76,7 @@ export default async function AdminPage() {
       <h1 className="text-xl font-bold">Admin</h1>
 
       <CookieUpload />
+      <RebootInstanceButton />
 
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-neutral-400">Users</h2>
