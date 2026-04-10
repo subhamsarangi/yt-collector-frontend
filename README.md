@@ -1,5 +1,7 @@
 # YT Collector — Frontend
 
+<img src="public/logo.png" alt="YT Collector" width="80" />
+
 Next.js app deployed on Vercel. Handles the UI, API routes, cron jobs, and Whisper callback.
 
 ---

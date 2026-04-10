@@ -205,13 +205,13 @@ async function processItem(item: Record<string, unknown>) {
       steps: [],
     }).select("id").single();
 
-    step("yt-dlp started — downloading metadata, thumbnail and audio via OCI");
+    step("yt-dlp started — fetching metadata and thumbnail via OCI");
     await saveSteps();
 
+    // Step 1a: Metadata + thumbnail (fast, always completes)
     result = await ociPost("/video", { youtube_id: item.youtube_id });
     const meta = result.metadata as Record<string, unknown>;
-    const ytdlpDoneAt = new Date().toISOString();
-    step(`yt-dlp done — title: "${meta.title}", duration: ${meta.duration}s`);
+    step(`Metadata fetched — title: "${meta.title}", duration: ${meta.duration}s`);
 
     await supabaseAdmin.from("videos").upsert({
       youtube_id: item.youtube_id,
@@ -221,13 +221,27 @@ async function processItem(item: Record<string, unknown>) {
       topic_id: item.source === "topic" ? item.source_id : null,
       metadata: result.metadata,
       thumbnail_r2_url: result.thumbnail_url,
-      audio_r2_url: result.audio_url,
       published_at: meta.upload_date
         ? new Date((meta.upload_date as string).replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3")).toISOString()
         : null,
     }, { onConflict: "youtube_id" });
 
-    step("Video record upserted to database");
+    step("Metadata and thumbnail saved — video visible in UI");
+    await saveSteps();
+
+    // Step 1b: Audio download (slow for long videos — separate call)
+    step("Starting audio download...");
+    await saveSteps();
+    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id });
+    const ytdlpDoneAt = new Date().toISOString();
+    step("Audio downloaded and uploaded to R2");
+
+    await supabaseAdmin.from("videos")
+      .update({ audio_r2_url: audioResult.audio_url })
+      .eq("youtube_id", item.youtube_id);
+
+    result = { ...result, audio_url: audioResult.audio_url };
+
     await supabaseAdmin.from("queue").update({ status: "yt_dlp_done" }).eq("id", item.id);
     await supabaseAdmin.from("processing_logs")
       .update({ ytdlp_done_at: ytdlpDoneAt, steps })

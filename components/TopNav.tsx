@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 
@@ -26,7 +27,10 @@ export default async function TopNav() {
   return (
     <nav className="hidden md:flex items-center justify-between px-6 py-3 bg-neutral-900 border-b border-neutral-800">
       <div className="flex items-center gap-6">
-        <span className="font-bold text-sm">YT Collector</span>
+        <Link href="/" className="flex items-center gap-2 flex-shrink-0">
+          <Image src="/logo.png" alt="YT Collector" width={28} height={28} className="rounded" />
+          <span className="font-bold text-sm">YT Collector</span>
+        </Link>
         {links.map((l) => (
           <Link key={l.href} href={l.href} className="text-sm text-neutral-400 hover:text-white transition">
             {l.label}
