@@ -89,11 +89,12 @@ async function processQueue() {
 
   if (inProgress) return NextResponse.json({ ok: true, message: "Job already in progress" });
 
-  // Pick next pending or resumable item
+  // Pick next pending or resumable item — skip items in retry cooldown
   const { data: item } = await supabaseAdmin
     .from("queue")
     .select("*")
     .in("status", ["pending", "yt_dlp_done"])
+    .or("retry_after.is.null,retry_after.lte." + new Date().toISOString())
     .order("created_at", { ascending: true })
     .limit(1)
     .single();
@@ -118,20 +119,22 @@ async function processQueue() {
     const isWhisperStage = ["yt_dlp_done", "whisper_processing", "whisper_done"].includes(currentStatus);
 
     if (isWhisperStage) {
-      // yt-dlp succeeded — only retry whisper
       const whisperRetries = (current?.whisper_retries || 0) + 1;
+      const backoffMs = [2, 5, 15][Math.min(whisperRetries - 1, 2)] * 60 * 1000;
       await supabaseAdmin.from("queue").update({
         status: whisperRetries >= MAX_RETRIES ? "error_whisper" : "yt_dlp_done",
         whisper_retries: whisperRetries,
         last_error: message,
+        retry_after: whisperRetries < MAX_RETRIES ? new Date(Date.now() + backoffMs).toISOString() : null,
       }).eq("id", item.id);
     } else {
-      // Failed during yt-dlp stage
       const retries = (current?.retries || 0) + 1;
+      const backoffMs = [2, 5, 15][Math.min(retries - 1, 2)] * 60 * 1000;
       await supabaseAdmin.from("queue").update({
         status: retries >= MAX_RETRIES ? "error_ytdlp" : "pending",
         retries,
         last_error: message,
+        retry_after: retries < MAX_RETRIES ? new Date(Date.now() + backoffMs).toISOString() : null,
       }).eq("id", item.id);
     }
 
@@ -269,7 +272,7 @@ async function processItem(item: Record<string, unknown>) {
   await supabaseAdmin.from("videos").update({ transcript, summary, audio_r2_url: null }).eq("youtube_id", item.youtube_id);
   step("Transcript and summary saved to database");
 
-  await supabaseAdmin.from("queue").update({ status: "complete" }).eq("id", item.id);
+  await supabaseAdmin.from("queue").update({ status: "complete", retry_after: null }).eq("id", item.id);
   step("Processing complete ✓");
   await supabaseAdmin.from("processing_logs")
     .update({ whisper_done_at: whisperDoneAt, steps })
