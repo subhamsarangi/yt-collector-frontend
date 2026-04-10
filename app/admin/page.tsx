@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
+import CookieUpload from "@/components/CookieUpload";
 
 export const revalidate = 0;
 
@@ -10,8 +11,12 @@ export default async function AdminPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-xl font-bold">Admin — Users</h1>
+      <h1 className="text-xl font-bold">Admin</h1>
+
+      <CookieUpload />
+
       <div className="flex flex-col gap-2">
+        <h2 className="text-sm font-semibold text-neutral-400">Users</h2>
         {users?.map((u) => (
           <div key={u.id} className="flex items-center justify-between bg-neutral-900 rounded-lg px-4 py-3">
             <div>
