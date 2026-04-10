@@ -144,6 +144,23 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
         </div>
       )}
 
+      {/* Summary — shown right after tags */}
+      {video.summary && (
+        <section className="bg-neutral-900 rounded-lg p-4">
+          <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-3">Summary</h2>
+          <ul className="flex flex-col gap-2">
+            {video.summary.split("\n").filter((l: string) => l.trim()).map((line: string, i: number) => (
+              <li key={i} className="flex items-start gap-2">
+                <span className="text-neutral-600 flex-shrink-0 mt-1 text-xs">•</span>
+                <span className="text-sm text-neutral-300 leading-relaxed" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                  {line.replace(/^[•\-]\s*/, "")}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       {/* Description — full, no truncation */}
       {video.description && (
         <p className="text-sm text-neutral-400 whitespace-pre-line">{video.description}</p>
@@ -165,21 +182,6 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
               );
             })}
           </div>
-        </section>
-      )}
-
-      {/* Summary */}
-      {video.summary && (
-        <section>
-          <h2 className="text-sm font-semibold text-neutral-400 mb-2">Summary</h2>
-          <ul className="flex flex-col gap-1.5">
-            {video.summary.split("\n").filter((l: string) => l.trim()).map((line: string, i: number) => (
-              <li key={i} className="text-sm text-neutral-300 flex items-start gap-2">
-                <span className="text-neutral-600 flex-shrink-0 mt-0.5">•</span>
-                <span>{line.replace(/^[•\-]\s*/, "")}</span>
-              </li>
-            ))}
-          </ul>
         </section>
       )}
 
