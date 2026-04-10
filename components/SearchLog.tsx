@@ -12,7 +12,7 @@ function renderEntry(entry: LogEntry, i: number) {
     <div key={i} className="flex flex-col gap-1 pl-5">
       <span className="text-neutral-500">
         Queries generated
-        {entry.model && <span className="text-neutral-600 font-mono ml-1">({entry.model as string})</span>}:
+        {typeof entry.model === "string" && <span className="text-neutral-600 font-mono ml-1">({entry.model})</span>}:
       </span>
       {(entry.queries as string[]).map((q, qi) => (
         <span key={qi} className="text-neutral-300 font-mono pl-2">→ {q}</span>
