@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import { getUserRole } from "@/lib/supabase/userRole";
 
 const links = [
   { href: "/",         label: "Home" },
@@ -22,6 +23,7 @@ export default async function TopNav() {
     }
   );
   const { data: { user } } = await supabase.auth.getUser();
+  const role = user ? await getUserRole() : null;
 
   return (
     <nav className="hidden md:flex items-center justify-between px-6 py-3 bg-neutral-900 border-b border-neutral-800">
@@ -40,7 +42,9 @@ export default async function TopNav() {
       <div className="flex items-center gap-4 text-sm">
         {user ? (
           <>
-            <Link href="/admin" className="text-neutral-400 hover:text-white transition">Admin</Link>
+            <Link href="/admin" className="text-neutral-400 hover:text-white transition">
+              {role === "owner" ? "Admin" : "Account"}
+            </Link>
             <form action="/api/auth/logout" method="POST">
               <button type="submit" className="text-neutral-400 hover:text-white transition">Logout</button>
             </form>

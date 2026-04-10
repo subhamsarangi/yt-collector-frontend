@@ -1,9 +1,62 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { getUserRole } from "@/lib/supabase/userRole";
+import { cookies } from "next/headers";
+import { createServerClient } from "@supabase/ssr";
 import CookieUpload from "@/components/CookieUpload";
 
 export const revalidate = 0;
 
 export default async function AdminPage() {
+  const role = await getUserRole();
+
+  // Guest view
+  if (role !== "owner") {
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } }
+    );
+    const { data: { user } } = await supabase.auth.getUser();
+
+    return (
+      <div className="flex flex-col gap-6 max-w-md">
+        <h1 className="text-xl font-bold">Account</h1>
+
+        <div className="flex flex-col gap-2 bg-neutral-900 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-neutral-400">Your account</h2>
+          <p className="text-sm">{user?.email}</p>
+          <p className="text-xs text-neutral-500">
+            Role: <span className="text-neutral-300">Guest</span> · Status:{" "}
+            <span className="text-green-400">Approved</span>
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2 bg-neutral-900 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-neutral-400">About YT Collector</h2>
+          <p className="text-sm text-neutral-400 leading-relaxed">
+            YT Collector is a personal platform that automatically tracks YouTube channels,
+            searches for topics, transcribes videos, and makes everything full-text searchable.
+          </p>
+          <ul className="text-sm text-neutral-500 flex flex-col gap-1 mt-1">
+            <li>📺 Browse tracked channels by domain</li>
+            <li>🔖 Explore topic searches and their videos</li>
+            <li>🔍 Full-text search across all transcripts</li>
+            <li>📄 Export any video or topic as PDF</li>
+          </ul>
+        </div>
+
+        <form action="/api/auth/logout" method="POST">
+          <button type="submit"
+            className="text-sm text-red-400 hover:text-red-300 transition">
+            Sign out
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  // Owner view
   const { data: users } = await supabaseAdmin
     .from("users")
     .select("id, email, approved, role, created_at")
