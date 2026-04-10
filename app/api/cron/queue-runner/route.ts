@@ -186,12 +186,30 @@ async function processItem(item: Record<string, unknown>) {
     await supabaseAdmin.from("queue").update({ status: "yt_dlp_processing" }).eq("id", item.id);
 
     const ytdlpStartedAt = new Date().toISOString();
-    const { data: logRow } = await supabaseAdmin.from("processing_logs").insert({
-      queue_id: item.id,
-      youtube_id: item.youtube_id,
-      ytdlp_started_at: ytdlpStartedAt,
-      steps: [],
-    }).select("id").single();
+
+    // Fetch existing log row to append to (retry case)
+    const { data: existingLog } = await supabaseAdmin
+      .from("processing_logs").select("id, steps").eq("queue_id", item.id).single();
+
+    const priorSteps: Array<{ ts: string; text: string; ok?: boolean }> = existingLog?.steps ?? [];
+
+    if (existingLog) {
+      // Append a separator so retries are visually distinct
+      priorSteps.push({ ts: new Date().toISOString(), text: "── Retry attempt ──", ok: true });
+      await supabaseAdmin.from("processing_logs")
+        .update({ steps: priorSteps, ytdlp_started_at: ytdlpStartedAt })
+        .eq("queue_id", item.id);
+    } else {
+      await supabaseAdmin.from("processing_logs").insert({
+        queue_id: item.id,
+        youtube_id: item.youtube_id,
+        ytdlp_started_at: ytdlpStartedAt,
+        steps: [],
+      });
+    }
+
+    // Seed in-memory steps with prior history so saveSteps() preserves them
+    steps.push(...priorSteps);
 
     step("yt-dlp started — fetching metadata and thumbnail via OCI");
     await saveSteps();
@@ -224,7 +242,6 @@ async function processItem(item: Record<string, unknown>) {
       await supabaseAdmin.from("processing_logs")
         .update({ ytdlp_done_at: new Date().toISOString(), steps })
         .eq("queue_id", item.id);
-      void logRow;
       return;
     }
 
@@ -247,7 +264,7 @@ async function processItem(item: Record<string, unknown>) {
       .update({ ytdlp_done_at: ytdlpDoneAt, steps })
       .eq("queue_id", item.id);
 
-    void logRow; // used implicitly via queue_id
+    void 0; // log row managed via upsert above
   }
 
   // Step 2: Transcribe
