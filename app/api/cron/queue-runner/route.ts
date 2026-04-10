@@ -26,7 +26,7 @@ async function ociPost(path: string, body: object) {
   }
 }
 
-async function transcribeWithGroq(audioUrl: string, offsetSeconds = 0): Promise<string> {
+async function transcribeWithGroq(audioUrl: string): Promise<string> {
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
   const audioController = new AbortController();
@@ -41,7 +41,7 @@ async function transcribeWithGroq(audioUrl: string, offsetSeconds = 0): Promise<
 
   const audioBlob = await audioRes.blob();
   if (audioBlob.size > 25 * 1024 * 1024) {
-    throw new Error(`Audio chunk too large for Groq (${Math.round(audioBlob.size / 1024 / 1024)}MB > 25MB)`);
+    throw new Error(`Audio too large for Groq (${Math.round(audioBlob.size / 1024 / 1024)}MB > 25MB)`);
   }
 
   const audioFile = new File([audioBlob], "audio.mp3", { type: "audio/mpeg" });
@@ -57,25 +57,14 @@ async function transcribeWithGroq(audioUrl: string, offsetSeconds = 0): Promise<
   if (!segments.length) return result.text ?? "";
 
   return segments.map((seg: Segment) => {
-    const start = Math.floor(seg.start + offsetSeconds);
+    const start = Math.floor(seg.start);
     const m = Math.floor(start / 60).toString().padStart(2, "0");
     const s = (start % 60).toString().padStart(2, "0");
     return `[${m}:${s}] ${seg.text.trim()}`;
   }).join("\n");
 }
 
-async function transcribeChunks(
-  chunks: Array<{ url: string; offset: number }>,
-  onChunk: (i: number, total: number) => void
-): Promise<string> {
-  const parts: string[] = [];
-  for (let i = 0; i < chunks.length; i++) {
-    onChunk(i + 1, chunks.length);
-    const part = await transcribeWithGroq(chunks[i].url, chunks[i].offset);
-    parts.push(part);
-  }
-  return parts.join("\n");
-}
+
 
 export async function GET() {
   return processQueue();
@@ -216,25 +205,19 @@ async function processItem(item: Record<string, unknown>) {
     step("Metadata and thumbnail saved — video visible in UI");
     await saveSteps();
 
-    // Step 1b: Audio download (slow for long videos — chunked if > 20 min)
+    // Step 1b: Audio download (capped at 38 min via --download-sections)
     const duration = (meta.duration as number) ?? 0;
-    const isLong = duration > 20 * 60;
-    step(`Starting audio download... (${Math.round(duration / 60)} min${isLong ? ", will be chunked" : ""})`);
+    step(`Starting audio download... (video is ${Math.round(duration / 60)} min, downloading first 38 min max)`);
     await saveSteps();
-    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration });
+    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id });
     const ytdlpDoneAt = new Date().toISOString();
-
-    const chunks: Array<{ url: string; offset: number }> = audioResult.chunked
-      ? audioResult.chunks.map((c: { url: string; offset: number }) => c)
-      : [{ url: audioResult.audio_url, offset: 0 }];
-
-    step(`Audio ready — ${chunks.length} chunk(s) uploaded to R2`);
+    step("Audio downloaded and uploaded to R2");
 
     await supabaseAdmin.from("videos")
-      .update({ audio_r2_url: audioResult.chunked ? null : audioResult.audio_url })
+      .update({ audio_r2_url: audioResult.audio_url })
       .eq("youtube_id", item.youtube_id);
 
-    result = { ...result, chunks, audio_url: audioResult.audio_url };
+    result = { ...result, audio_url: audioResult.audio_url };
 
     await supabaseAdmin.from("queue").update({ status: "yt_dlp_done" }).eq("id", item.id);
     await supabaseAdmin.from("processing_logs")
@@ -254,24 +237,19 @@ async function processItem(item: Record<string, unknown>) {
   step("Whisper transcription started via Groq");
   await saveSteps();
 
-  const MAX_CHUNKS = 2; // cap at 38 min of transcription (2 × 19-min chunks)
-  const allChunks = (result.chunks as Array<{ url: string; offset: number }>) ?? [{ url: result.audio_url as string, offset: 0 }];
-  const chunks = allChunks.slice(0, MAX_CHUNKS);
-  if (allChunks.length > MAX_CHUNKS) {
-    step(`Video has ${allChunks.length} chunks — transcribing first ${MAX_CHUNKS} only (38 min cap)`);
-  }
-  const transcript = await transcribeChunks(chunks, (i, total) => {
-    step(`Transcribing chunk ${i}/${total}...`);
-  });
+  const audioUrl = result.audio_url as string;
+  const transcript = await transcribeWithGroq(audioUrl);
   const whisperDoneAt = new Date().toISOString();
   const lineCount = transcript.split("\n").filter(Boolean).length;
-  step(`Transcription done — ${lineCount} segments across ${chunks.length} chunk(s)`);
+  step(`Transcription done — ${lineCount} segments`);
   await saveSteps();
 
-  // Clean up ALL chunk files from R2 (including skipped ones beyond the cap)
-  for (const chunk of allChunks) {
-    const key = chunk.url.split("/").slice(-2).join("/"); // audio/id_chunk000.mp3
-    try { await deleteFromR2(key); } catch { /* non-fatal */ }
+  // Delete audio from R2
+  try {
+    await deleteFromR2(`audio/${item.youtube_id}.mp3`);
+    step("Audio deleted from R2");
+  } catch (e) {
+    step(`R2 audio delete failed (non-fatal): ${e instanceof Error ? e.message : String(e)}`, false);
   }
 
   // Step 3: Summarize
@@ -290,17 +268,6 @@ async function processItem(item: Record<string, unknown>) {
   // Step 4: Save and complete
   await supabaseAdmin.from("videos").update({ transcript, summary, audio_r2_url: null }).eq("youtube_id", item.youtube_id);
   step("Transcript and summary saved to database");
-
-  try {
-    // For single-file (non-chunked) videos, delete the audio from R2
-    const singleAudioUrl = result.audio_url as string | null;
-    if (singleAudioUrl && (result.chunks as Array<unknown>).length === 1) {
-      await deleteFromR2(`audio/${item.youtube_id}.mp3`);
-      step("Audio file deleted from R2");
-    }
-  } catch (e) {
-    step(`R2 audio delete failed (non-fatal): ${e instanceof Error ? e.message : String(e)}`, false);
-  }
 
   await supabaseAdmin.from("queue").update({ status: "complete" }).eq("id", item.id);
   step("Processing complete ✓");
