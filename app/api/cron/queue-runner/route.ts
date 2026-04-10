@@ -77,23 +77,8 @@ async function transcribeChunks(
   return parts.join("\n");
 }
 
-const SELF_URL = (
-  process.env.NEXT_PUBLIC_APP_URL
-  ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
-).replace(/\/$/, "");
-
-function triggerNextItem(skipId?: string) {
-  const url = `${SELF_URL}/api/cron/queue-runner${skipId ? `?skip=${skipId}` : ""}`;
-  console.log(`[queue] triggering next item via ${url}`);
-  fetch(url, {
-    method: "POST",
-    headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
-  }).then(r => console.log(`[queue] trigger response: ${r.status}`))
-    .catch(e => console.error(`[queue] trigger failed:`, e));
-}
-export async function GET(req: NextRequest) {
-  const skip = req.nextUrl.searchParams.get("skip") ?? undefined;
-  return processQueue(skip);
+export async function GET() {
+  return processQueue();
 }
 
 export async function POST(req: NextRequest) {
@@ -101,11 +86,10 @@ export async function POST(req: NextRequest) {
   if (secret !== process.env.QUEUE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const skip = new URL(req.url).searchParams.get("skip") ?? undefined;
-  return processQueue(skip);
+  return processQueue();
 }
 
-async function processQueue(skipId?: string) {
+async function processQueue() {
   // One job at a time
   const { data: inProgress } = await supabaseAdmin
     .from("queue")
@@ -116,17 +100,14 @@ async function processQueue(skipId?: string) {
 
   if (inProgress) return NextResponse.json({ ok: true, message: "Job already in progress" });
 
-  // Pick next item — skip recently failed item to avoid tight retry loops
-  let query = supabaseAdmin
+  // Pick next pending or resumable item
+  const { data: item } = await supabaseAdmin
     .from("queue")
     .select("*")
     .in("status", ["pending", "yt_dlp_done"])
     .order("created_at", { ascending: true })
-    .limit(1);
-
-  if (skipId) query = query.neq("id", skipId);
-
-  const { data: item } = await query.single();
+    .limit(1)
+    .single();
 
   if (!item) return NextResponse.json({ ok: true, message: "Queue empty" });
 
@@ -173,8 +154,7 @@ async function processQueue(skipId?: string) {
         { ts: new Date().toISOString(), text: `Failed: ${message}`, ok: false }];
       await supabaseAdmin.from("processing_logs").update({ steps: updatedSteps }).eq("queue_id", item.id);
     }
-
-    triggerNextItem(item.id as string);
+    // Poller will pick up the next item automatically
   }
 
   return NextResponse.json({ ok: true });
@@ -322,8 +302,7 @@ async function processItem(item: Record<string, unknown>) {
   await supabaseAdmin.from("processing_logs")
     .update({ whisper_done_at: whisperDoneAt, steps })
     .eq("queue_id", item.id);
-
-  triggerNextItem();
+  // Poller will pick up the next item automatically
 }
 
 // [COLAB] The following route was used when Colab handled transcription:

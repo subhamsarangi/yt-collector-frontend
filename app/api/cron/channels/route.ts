@@ -46,16 +46,6 @@ export async function GET() {
     }
   }
 
-  const selfUrl = (process.env.NEXT_PUBLIC_APP_URL
-    ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
-  ).replace(/\/$/, "");
-
-  if (added > 0) {
-    fetch(`${selfUrl}/api/cron/queue-runner`, {
-      method: "POST",
-      headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
-    }).catch(() => null);
-  }
-
+  // Poller on OCI will pick up new items within 10s automatically
   return NextResponse.json({ ok: true, added });
 }

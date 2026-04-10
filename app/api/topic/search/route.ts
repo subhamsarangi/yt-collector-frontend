@@ -112,17 +112,9 @@ export async function POST(req: NextRequest) {
         .update({ search_log: fullLog })
         .eq("id", topic_id);
 
-      // Auto-start processing — fire and forget
+      // Auto-start processing — poller on OCI will pick it up within 10s
       if (added > 0) {
-        await sendAndLog({ step: "Starting queue processing..." });
-        const selfUrl = (process.env.NEXT_PUBLIC_APP_URL
-          ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
-        ).replace(/\/$/, "");
-        fetch(`${selfUrl}/api/cron/queue-runner`, {
-          method: "POST",
-          headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
-        }).then(r => console.log(`[search] queue trigger: ${r.status}`))
-          .catch(e => console.error(`[search] queue trigger failed:`, e));
+        await sendAndLog({ step: "Videos queued — processing will start automatically." });
       }
 
       await send({ done: true, topic_id, added });
