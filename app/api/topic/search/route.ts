@@ -115,13 +115,13 @@ export async function POST(req: NextRequest) {
       // Auto-start processing — fire and forget
       if (added > 0) {
         await sendAndLog({ step: "Starting queue processing..." });
-        const selfUrl = process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+        const selfUrl = process.env.NEXT_PUBLIC_APP_URL
+          ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
         fetch(`${selfUrl}/api/cron/queue-runner`, {
           method: "POST",
           headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
-        }).catch(() => null);
+        }).then(r => console.log(`[search] queue trigger: ${r.status}`))
+          .catch(e => console.error(`[search] queue trigger failed:`, e));
       }
 
       await send({ done: true, topic_id, added });
