@@ -115,8 +115,9 @@ export async function POST(req: NextRequest) {
       // Auto-start processing — fire and forget
       if (added > 0) {
         await sendAndLog({ step: "Starting queue processing..." });
-        const selfUrl = process.env.NEXT_PUBLIC_APP_URL
-          ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+        const selfUrl = (process.env.NEXT_PUBLIC_APP_URL
+          ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+        ).replace(/\/$/, "");
         fetch(`${selfUrl}/api/cron/queue-runner`, {
           method: "POST",
           headers: { "x-webhook-secret": process.env.QUEUE_WEBHOOK_SECRET! },
