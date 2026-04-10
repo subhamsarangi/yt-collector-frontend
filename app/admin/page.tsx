@@ -75,7 +75,6 @@ export default async function AdminPage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">Admin</h1>
 
-      <CookieUpload />
       <RebootInstanceButton />
 
       <div className="flex flex-col gap-2">
@@ -103,6 +102,8 @@ export default async function AdminPage() {
         })}
         {!users?.length && <p className="text-neutral-500 text-sm">No users yet.</p>}
       </div>
+
+      <CookieUpload />
     </div>
   );
 }
