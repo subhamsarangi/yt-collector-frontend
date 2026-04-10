@@ -5,7 +5,7 @@ type HealthStatus = "unknown" | "checking" | "ok" | "down";
 
 export default function RebootInstanceButton() {
   const [health, setHealth] = useState<HealthStatus>("unknown");
-  const [step, setStep] = useState<"idle" | "confirm" | "loading" | "done" | "error">("idle");
+  const [step, setStep] = useState<"idle" | "confirm-soft" | "confirm-hard" | "loading" | "done" | "error">("idle");
   const [msg, setMsg] = useState("");
 
   async function checkHealth() {
@@ -20,14 +20,19 @@ export default function RebootInstanceButton() {
   }
 
   async function handleConfirm() {
+    const action = step === "confirm-hard" ? "RESET" : "SOFTRESET";
     setStep("loading");
     setMsg("");
-    const res = await fetch("/api/admin/reboot-instance", { method: "POST" });
+    const res = await fetch("/api/admin/reboot-instance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
     const data = await res.json();
     if (res.ok) {
       setStep("done");
       setHealth("unknown");
-      setMsg("Reboot initiated. Instance will restart in ~30 seconds.");
+      setMsg(`${action === "RESET" ? "Hard" : "Soft"} reboot initiated. Instance will restart in ~30 seconds.`);
       setTimeout(() => setStep("idle"), 10000);
     } else {
       setStep("error");
@@ -67,26 +72,36 @@ export default function RebootInstanceButton() {
       {health === "down" && (
         <div className="flex flex-col gap-2 pl-1 border-l-2 border-red-900">
           <p className="text-xs text-neutral-500">
-            Soft-reboot the OCI server. The instance will restart in ~30 seconds.
+            Soft reboot gracefully restarts. Hard reboot is a forced power cycle — use as last resort.
           </p>
 
           {step === "idle" && (
-            <button
-              onClick={() => setStep("confirm")}
-              className="text-xs w-fit bg-red-950 border border-red-800 text-red-400 hover:bg-red-900 rounded px-3 py-1.5 transition"
-            >
-              ↺ Reboot instance
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setStep("confirm-soft")}
+                className="text-xs border border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500 rounded px-3 py-1.5 transition"
+              >
+                ↺ Soft reboot
+              </button>
+              <button
+                onClick={() => setStep("confirm-hard")}
+                className="text-xs bg-red-950 border border-red-800 text-red-400 hover:bg-red-900 rounded px-3 py-1.5 transition"
+              >
+                ⚡ Hard reboot
+              </button>
+            </div>
           )}
 
-          {step === "confirm" && (
+          {(step === "confirm-soft" || step === "confirm-hard") && (
             <div className="flex items-center gap-3">
-              <span className="text-xs text-yellow-400">Are you sure?</span>
+              <span className="text-xs text-yellow-400">
+                {step === "confirm-hard" ? "Force power cycle the instance?" : "Gracefully restart the instance?"}
+              </span>
               <button
                 onClick={handleConfirm}
                 className="text-xs bg-red-900 hover:bg-red-800 text-red-300 rounded px-3 py-1.5 transition"
               >
-                Yes, reboot
+                Yes, {step === "confirm-hard" ? "hard reboot" : "soft reboot"}
               </button>
               <button
                 onClick={() => setStep("idle")}

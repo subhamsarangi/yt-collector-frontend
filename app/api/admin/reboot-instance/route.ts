@@ -48,10 +48,13 @@ export async function POST(req: NextRequest) {
   const denied = await requireOwner();
   if (denied) return denied;
 
+  const body_json = await req.json().catch(() => ({}));
+  const action = body_json.action === "RESET" ? "RESET" : "SOFTRESET";
+
   const host = `iaas.${REGION}.oraclecloud.com`;
   const path = `/20160918/instances/${encodeURIComponent(INSTANCE_ID)}`;
   const url  = `https://${host}${path}`;
-  const body = JSON.stringify({ action: "SOFTRESET" });
+  const body = JSON.stringify({ action });
   const date = new Date().toUTCString();
 
   const { authorization, contentSha256, contentLength } = signRequest("POST", host, path, date, body);
@@ -90,6 +93,7 @@ export async function POST(req: NextRequest) {
     instance_id: INSTANCE_ID,
     status,
     error,
+    action,
   });
 
   if (httpStatus !== 200) {
