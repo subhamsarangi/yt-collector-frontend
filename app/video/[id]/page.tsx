@@ -51,9 +51,26 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   return (
     <div className="flex flex-col gap-6">
       {video.thumbnail_r2_url && (
-        <a href={`https://www.youtube.com/watch?v=${video.youtube_id}`} target="_blank" rel="noopener noreferrer">
-          <img src={video.thumbnail_r2_url} alt={video.title}
-            className="w-full rounded-lg object-cover max-h-72 hover:opacity-90 transition" />
+        <a
+          href={`https://www.youtube.com/watch?v=${video.youtube_id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative block group overflow-hidden rounded-lg"
+        >
+          <img
+            src={video.thumbnail_r2_url}
+            alt={video.title}
+            className="w-full object-cover max-h-72"
+          />
+          {/* Grey gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+          {/* YouTube icon */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/yt.png"
+            alt="Play on YouTube"
+            className="absolute inset-0 m-auto w-14 h-14 transition-transform duration-200 group-hover:scale-105 drop-shadow-lg"
+          />
         </a>
       )}
 
