@@ -73,7 +73,7 @@ export default async function TopicsPage() {
                   )}
 
                   {/* Gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.1) 100%)" }} />
 
                   {/* Topic name + count */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
