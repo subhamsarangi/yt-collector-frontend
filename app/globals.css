@@ -11,7 +11,3 @@ body {
   font-family: var(--font-geist-sans), Arial, sans-serif;
 }
 
-/* Topic card — font size set via inline style, !important ensures nothing overrides it */
-.topic-card-name {
-  font-size: inherit !important;
-}
