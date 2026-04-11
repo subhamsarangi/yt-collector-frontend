@@ -184,7 +184,10 @@ async function processItem(item: Record<string, unknown>) {
     result = { metadata: video?.metadata ?? {} };
 
     await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
-    const speedTest2 = await ociPost("/speed-test", {}).catch(() => null);
+    const speedTest2 = await fetch(`${OCI}/speed-test`, {
+      headers: { Authorization: `Bearer ${OCI_KEY}` },
+      signal: AbortSignal.timeout(15000),
+    }).then(r => r.ok ? r.json() : null).catch(() => null);
     if (speedTest2?.speed_mbps) {
       step(`Speed test: ${speedTest2.speed_mbps}MB/s — estimated download time: ~${speedTest2.eta_s}s for ~${speedTest2.expected_size_mb}MB`);
     } else {
@@ -254,7 +257,10 @@ async function processItem(item: Record<string, unknown>) {
     await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
 
     // Speed test first — log estimate before download starts
-    const speedTest = await ociPost("/speed-test", {}).catch(() => null);
+    const speedTest = await fetch(`${OCI}/speed-test`, {
+      headers: { Authorization: `Bearer ${OCI_KEY}` },
+      signal: AbortSignal.timeout(15000),
+    }).then(r => r.ok ? r.json() : null).catch(() => null);
     if (speedTest?.speed_mbps) {
       step(`Speed test: ${speedTest.speed_mbps}MB/s — estimated download time: ~${speedTest.eta_s}s for ~${speedTest.expected_size_mb}MB`);
     } else {
