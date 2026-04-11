@@ -51,7 +51,7 @@ export default async function AdminPage() {
         <form action="/api/auth/logout" method="POST">
           <button type="submit"
             className="text-sm text-red-400 hover:text-red-300 transition">
-            Sign out
+            Log out
           </button>
         </form>
       </div>
@@ -80,15 +80,26 @@ export default async function AdminPage() {
   const audioCap = (capSetting?.value as number) ?? 10;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-8">
       <h1 className="text-xl font-bold">Admin</h1>
 
-      <RebootInstanceButton />
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Server</h2>
+        <RebootInstanceButton />
+      </section>
 
-      <AudioCapSlider initial={audioCap} />
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Transcription</h2>
+        <AudioCapSlider initial={audioCap} />
+      </section>
 
-      <div className="flex flex-col gap-2">
-        <h2 className="text-sm font-semibold text-neutral-400">Users</h2>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Cookies</h2>
+        <CookieUpload />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Accounts</h2>
         {users?.map((u) => {
           const isSelf = u.id === currentUser?.id;
           return (
@@ -111,9 +122,12 @@ export default async function AdminPage() {
           );
         })}
         {!users?.length && <p className="text-neutral-500 text-sm">No users yet.</p>}
-      </div>
-
-      <CookieUpload />
+        <form action="/api/auth/logout" method="POST">
+          <button type="submit" className="text-sm text-red-400 hover:text-red-300 transition">
+            Log out
+          </button>
+        </form>
+      </section>
     </div>
   );
 }
