@@ -77,7 +77,10 @@ export default async function TopicsPage() {
 
                   {/* Topic name + count */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
-                    <p className="text-white font-semibold text-sm leading-snug line-clamp-2">{t.name}</p>
+                    <p
+                      className="text-white font-semibold leading-snug line-clamp-2"
+                      style={{ fontSize: t.name.length < 20 ? "1.25rem" : t.name.length < 35 ? "1rem" : t.name.length < 55 ? "0.875rem" : "0.75rem" }}
+                    >{t.name}</p>
                     <p className="text-neutral-400 text-xs mt-1">{count} video{count !== 1 ? "s" : ""}</p>
                   </div>
                 </div>
