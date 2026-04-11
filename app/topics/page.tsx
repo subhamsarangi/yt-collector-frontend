@@ -73,7 +73,7 @@ export default async function TopicsPage() {
                   )}
 
                   {/* Gradient overlay */}
-                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.1) 100%)" }} />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.97) 0%, rgba(0,0,0,0.6) 50%, rgba(0,0,0,0.1) 100%)" }} />
 
                   {/* Topic name + count */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -82,7 +82,7 @@ export default async function TopicsPage() {
                       // eslint-disable-next-line react/no-danger
                       {...{} as object}
                       style={{
-                        fontSize: `${t.name.length < 15 ? 2 : t.name.length < 25 ? 1.75 : t.name.length < 40 ? 1.5 : t.name.length < 60 ? 1.25 : 1}rem`,
+                        fontSize: `${t.name.length < 15 ? 3.5 : t.name.length < 25 ? 3 : t.name.length < 40 ? 2.5 : t.name.length < 60 ? 2 : 1.6}rem`,
                         display: "-webkit-box",
                         WebkitLineClamp: 3,
                         WebkitBoxOrient: "vertical",
