@@ -107,10 +107,23 @@ async function processQueue() {
     const currentStatus = current?.status ?? item.status;
     if (currentStatus === "complete") return NextResponse.json({ ok: true });
 
-    // Determine which stage failed based on current status
-    const isAudioOrLater = ["metadata_done", "audio_processing", "audio_done", "transcribing", "summarizing"].includes(currentStatus);
+    // Map current active status back to the safe resume point
+    const isDownloadStage = ["audio_processing"].includes(currentStatus);
+    const isTranscribeStage = ["audio_done", "transcribing", "summarizing"].includes(currentStatus);
+    const isMetadataStage = ["metadata_processing", "metadata_done"].includes(currentStatus);
 
-    if (isAudioOrLater) {
+    if (isDownloadStage) {
+      // Timed out during download — go back to metadata_done so it retries the download
+      const retries = (current?.retries || 0) + 1;
+      const backoffMs = [2, 5, 15][Math.min(retries - 1, 2)] * 60 * 1000;
+      await supabaseAdmin.from("queue").update({
+        status: retries >= MAX_RETRIES ? "error_metadata" : "metadata_done",
+        retries,
+        last_error: message,
+        retry_after: retries < MAX_RETRIES ? new Date(Date.now() + backoffMs).toISOString() : null,
+      }).eq("id", item.id);
+    } else if (isTranscribeStage) {
+      // Timed out during transcription/summarization — resume from audio_done
       const whisperRetries = (current?.whisper_retries || 0) + 1;
       const backoffMs = [2, 5, 15][Math.min(whisperRetries - 1, 2)] * 60 * 1000;
       await supabaseAdmin.from("queue").update({
@@ -119,7 +132,7 @@ async function processQueue() {
         last_error: message,
         retry_after: whisperRetries < MAX_RETRIES ? new Date(Date.now() + backoffMs).toISOString() : null,
       }).eq("id", item.id);
-    } else {
+    } else if (isMetadataStage) {
       const retries = (current?.retries || 0) + 1;
       const backoffMs = [2, 5, 15][Math.min(retries - 1, 2)] * 60 * 1000;
       await supabaseAdmin.from("queue").update({
