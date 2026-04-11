@@ -3,11 +3,11 @@ import { requireOwner } from "@/lib/supabase/requireOwner";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { createSign, createHash } from "crypto";
 
-const REGION      = process.env.OCI_REGION!;
-const TENANCY     = process.env.OCI_TENANCY_ID!;
-const USER        = process.env.OCI_API_USER!;
-const FINGERPRINT = process.env.OCI_API_FINGERPRINT!;
-const INSTANCE_ID = process.env.OCI_INSTANCE_ID!;
+const REGION      = (process.env.OCI_REGION ?? "").trim();
+const TENANCY     = (process.env.OCI_TENANCY_ID ?? "").trim();
+const USER        = (process.env.OCI_API_USER ?? "").trim();
+const FINGERPRINT = (process.env.OCI_API_FINGERPRINT ?? "").trim();
+const INSTANCE_ID = (process.env.OCI_INSTANCE_ID ?? "").trim();
 
 function signRequest(method: string, host: string, path: string, date: string, body: string, privateKey: string) {
   const contentSha256 = createHash("sha256").update(body).digest("base64");
@@ -76,8 +76,13 @@ export async function POST(req: NextRequest) {
     if (!res.ok) {
       const text = await res.text();
       status = "failed";
-      error = `OCI returned ${res.status}: ${text}`;
+      error = `OCI ${res.status}: ${text}`;
+      console.error("[reboot] OCI error:", res.status, text);
+      console.error("[reboot] signed url:", url);
+      console.error("[reboot] key id:", `${TENANCY}/${USER}/${FINGERPRINT}`);
       httpStatus = 500;
+    } else {
+      console.log("[reboot] OCI accepted reboot, status:", res.status);
     }
   } catch (e) {
     status = "failed";
