@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import CookieUpload from "@/components/CookieUpload";
 import RebootInstanceButton from "@/components/RebootInstanceButton";
+import AudioCapSlider from "@/components/AudioCapSlider";
 
 export const revalidate = 0;
 
@@ -71,11 +72,20 @@ export default async function AdminPage() {
     .select("id, email, approved, role, created_at")
     .order("created_at", { ascending: false });
 
+  const { data: capSetting } = await supabaseAdmin
+    .from("settings")
+    .select("value")
+    .eq("key", "audio_cap_minutes")
+    .single();
+  const audioCap = (capSetting?.value as number) ?? 10;
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">Admin</h1>
 
       <RebootInstanceButton />
+
+      <AudioCapSlider initial={audioCap} />
 
       <div className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold text-neutral-400">Users</h2>

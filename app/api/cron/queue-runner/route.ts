@@ -153,6 +153,11 @@ async function processItem(item: Record<string, unknown>) {
   const saveSteps = () =>
     supabaseAdmin.from("processing_logs").update({ steps }).eq("queue_id", item.id);
 
+  // Read audio cap from settings (default 10 min)
+  const { data: capSetting } = await supabaseAdmin
+    .from("settings").select("value").eq("key", "audio_cap_minutes").single();
+  const CAP_SECONDS = ((capSetting?.value as number) ?? 10) * 60;
+
   let result: Record<string, unknown>;
 
   // ── Resume from audio_done → transcribing ──
@@ -172,7 +177,7 @@ async function processItem(item: Record<string, unknown>) {
       step("audio_r2_url missing — re-downloading audio");
       await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
       await saveSteps();
-      const audioResultRetry = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: (video?.metadata as Record<string, unknown>)?.duration ?? 0 }, 600000);
+      const audioResultRetry = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: (video?.metadata as Record<string, unknown>)?.duration ?? 0, cap_seconds: CAP_SECONDS }, 600000);
       step(`Audio downloaded — ${audioResultRetry.downloaded_duration_s ? Math.round(audioResultRetry.downloaded_duration_s/60)+"min" : "?min"} | ${audioResultRetry.size_mb ?? "?"}MB | ${audioResultRetry.elapsed_s ?? "?"}s @ ${audioResultRetry.speed_mbps ?? "?"}MB/s`);
       await supabaseAdmin.from("videos").update({ audio_r2_url: audioResultRetry.audio_url }).eq("youtube_id", item.youtube_id);
       await supabaseAdmin.from("queue").update({ status: "audio_done" }).eq("id", item.id);
@@ -199,16 +204,17 @@ async function processItem(item: Record<string, unknown>) {
     if (speedTest2?.speed_mbps) {
       const meta2 = result.metadata as Record<string, unknown>;
       const dur2 = (meta2?.duration as number) ?? 0;
-      const downloadMins2 = Math.min(dur2, 20 * 60) / 60;
+      const downloadMins2 = Math.min(dur2, CAP_SECONDS) / 60;
       const estimatedMb2 = Math.round(downloadMins2 * 0.25 * 10) / 10;
       const etaSec2 = Math.round(estimatedMb2 / speedTest2.speed_mbps);
       step(`Speed test: ${speedTest2.speed_mbps}MB/s — estimated ~${estimatedMb2}MB download in ~${etaSec2}s`);
     } else {
       step("Speed test failed — proceeding without estimate");
     }
-    step("Starting audio download... (downloading first 20 min)");
+    const capMins2 = Math.round(CAP_SECONDS / 60);
+    step(`Starting audio download... (downloading first ${capMins2} min)`);
     await saveSteps();
-    const audioResultMd = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: (result.metadata as Record<string, unknown>)?.duration ?? 0 }, 600000);
+    const audioResultMd = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: (result.metadata as Record<string, unknown>)?.duration ?? 0, cap_seconds: CAP_SECONDS }, 600000);
     step(`Audio downloaded — ${audioResultMd.downloaded_duration_s ? Math.round(audioResultMd.downloaded_duration_s/60)+"min" : "?min"} | ${audioResultMd.size_mb ?? "?"}MB | ${audioResultMd.elapsed_s ?? "?"}s @ ${audioResultMd.speed_mbps ?? "?"}MB/s`);
     await supabaseAdmin.from("videos").update({ audio_r2_url: audioResultMd.audio_url }).eq("youtube_id", item.youtube_id);
     result = { ...result, audio_url: audioResultMd.audio_url };
@@ -274,17 +280,18 @@ async function processItem(item: Record<string, unknown>) {
       signal: AbortSignal.timeout(15000),
     }).then(r => r.ok ? r.json() : null).catch(() => null);
     if (speedTest?.speed_mbps) {
-      const downloadMins = Math.min(duration, 20 * 60) / 60;
-      const estimatedMb = Math.round(downloadMins * 0.25 * 10) / 10; // ~0.25 MB/min at 16kHz mono mp3
+      const downloadMins = Math.min(duration, CAP_SECONDS) / 60;
+      const estimatedMb = Math.round(downloadMins * 0.25 * 10) / 10;
       const etaSec = Math.round(estimatedMb / speedTest.speed_mbps);
       step(`Speed test: ${speedTest.speed_mbps}MB/s — estimated ~${estimatedMb}MB download in ~${etaSec}s`);
     } else {
       step("Speed test failed — proceeding without estimate");
     }
-    step(`Starting audio download... (video is ${Math.round(duration / 60)} min${duration > 1200 ? ", downloading first 20 min" : ""})`);
+    const capMins = Math.round(CAP_SECONDS / 60);
+    step(`Starting audio download... (video is ${Math.round(duration / 60)} min${duration > CAP_SECONDS ? `, downloading first ${capMins} min` : ""})`);
     await saveSteps();
 
-    const audioResult2 = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: duration }, 600000);
+    const audioResult2 = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: duration, cap_seconds: CAP_SECONDS }, 600000);
     step(`Audio downloaded — ${audioResult2.downloaded_duration_s ? Math.round(audioResult2.downloaded_duration_s/60)+"min" : "?min"} | ${audioResult2.size_mb ?? "?"}MB | ${audioResult2.elapsed_s ?? "?"}s @ ${audioResult2.speed_mbps ?? "?"}MB/s`);
     await supabaseAdmin.from("videos").update({ audio_r2_url: audioResult2.audio_url }).eq("youtube_id", item.youtube_id);
     result = { ...result, audio_url: audioResult2.audio_url };
