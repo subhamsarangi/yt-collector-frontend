@@ -90,8 +90,8 @@ async function processQueue() {
   let timeoutHandle: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
     timeoutHandle = setTimeout(
-      () => reject(new Error("Function timeout after 270s")),
-      270000
+      () => reject(new Error("Function timeout after 290s")),
+      290000
     );
   });
 
