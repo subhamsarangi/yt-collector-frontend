@@ -20,13 +20,17 @@ type Props = {
 };
 
 const STATUS_LABEL: Record<string, string> = {
-  pending:            "Waiting in queue",
-  yt_dlp_processing:  "Downloading...",
-  yt_dlp_done:        "Download done, waiting for transcription",
-  whisper_processing: "Transcribing...",
-  whisper_done:       "Transcription done",
-  error_ytdlp:        "Download failed",
-  error_whisper:      "Transcription failed",
+  pending:             "Waiting in queue",
+  metadata_processing: "Fetching metadata...",
+  metadata_done:       "Metadata saved, downloading audio",
+  audio_processing:    "Downloading audio...",
+  audio_done:          "Audio ready, waiting for transcription",
+  transcribing:        "Transcribing...",
+  summarizing:         "Summarizing...",
+  complete:            "Complete",
+  error_metadata:      "Metadata fetch failed",
+  error_audio:         "Audio download failed",
+  error_transcription: "Transcription failed",
 };
 
 function ErrorModal({ error, onClose }: { error: string; onClose: () => void }) {

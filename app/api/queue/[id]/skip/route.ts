@@ -8,7 +8,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const { id } = await params;
   await supabaseAdmin
     .from("queue")
-    .update({ status: "error_ytdlp", last_error: "Manually skipped" })
+    .update({ status: "error_metadata", last_error: "Manually skipped" })
     .eq("id", id);
 
   // Trigger next item

@@ -33,9 +33,11 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
   const hasErrors = (queueItems ?? []).some((i) => i.status.startsWith("error_"));
   const isProcessing = (queueItems ?? []).some((i) =>
-    ["yt_dlp_processing", "whisper_processing", "whisper_done"].includes(i.status)
+    ["metadata_processing", "audio_processing", "transcribing", "summarizing"].includes(i.status)
   );
-  const hasPending = (queueItems ?? []).some((i) => ["pending", "yt_dlp_done"].includes(i.status));
+  const hasPending = (queueItems ?? []).some((i) =>
+    ["pending", "metadata_done", "audio_done"].includes(i.status)
+  );
   const canTrigger = (hasErrors || hasPending) && !isProcessing;
   const hasActivity = (videos?.length ?? 0) > 0 || (queueItems?.length ?? 0) > 0;
 

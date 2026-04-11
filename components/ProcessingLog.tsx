@@ -4,19 +4,22 @@ import { useEffect, useRef, useState } from "react";
 type Step = { ts: string; text: string; ok?: boolean };
 
 const ACTIVE_STATUSES = new Set([
-  "pending", "yt_dlp_processing", "yt_dlp_done",
-  "whisper_processing", "whisper_done",
+  "pending", "metadata_processing", "metadata_done",
+  "audio_processing", "audio_done", "transcribing", "summarizing",
 ]);
 
 const STATUS_LABEL: Record<string, string> = {
-  pending:            "Waiting in queue",
-  yt_dlp_processing:  "Downloading metadata & audio...",
-  yt_dlp_done:        "Download done — waiting for transcription",
-  whisper_processing: "Transcribing...",
-  whisper_done:       "Transcription done",
-  complete:           "Complete",
-  error_ytdlp:        "Download failed",
-  error_whisper:      "Transcription failed",
+  pending:             "Waiting in queue",
+  metadata_processing: "Fetching metadata...",
+  metadata_done:       "Metadata saved, downloading audio",
+  audio_processing:    "Downloading audio...",
+  audio_done:          "Audio ready, waiting for transcription",
+  transcribing:        "Transcribing...",
+  summarizing:         "Summarizing...",
+  complete:            "Complete",
+  error_metadata:      "Metadata fetch failed",
+  error_audio:         "Audio download failed",
+  error_transcription: "Transcription failed",
 };
 
 function formatTs(iso: string) {

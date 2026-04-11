@@ -24,18 +24,23 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const { status } = queueItem;
 
-  if (status === "error_ytdlp") {
-    // Restart from the beginning
+  if (status === "error_metadata") {
     await supabaseAdmin.from("queue").update({
       status: "pending",
       retries: 0,
       last_error: null,
       retry_after: null,
     }).eq("id", queueItem.id);
-  } else if (status === "error_whisper") {
-    // Audio already in R2 — skip re-download, retry from whisper
+  } else if (status === "error_audio") {
     await supabaseAdmin.from("queue").update({
-      status: "yt_dlp_done",
+      status: "metadata_done",
+      whisper_retries: 0,
+      last_error: null,
+      retry_after: null,
+    }).eq("id", queueItem.id);
+  } else if (status === "error_transcription") {
+    await supabaseAdmin.from("queue").update({
+      status: "audio_done",
       whisper_retries: 0,
       last_error: null,
       retry_after: null,
@@ -44,5 +49,5 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     return NextResponse.json({ error: `Cannot retry status: ${status}` }, { status: 400 });
   }
 
-  return NextResponse.json({ ok: true, retryFrom: status === "error_ytdlp" ? "download" : "transcription" });
+  return NextResponse.json({ ok: true, retryFrom: status });
 }

@@ -8,13 +8,15 @@ type Props = {
 };
 
 const LABEL: Record<string, string> = {
-  error_ytdlp:    "Retry download",
-  error_whisper:  "Retry transcription",
+  error_metadata:      "Retry metadata fetch",
+  error_audio:         "Retry audio download",
+  error_transcription: "Retry transcription",
 };
 
 const FROM: Record<string, string> = {
-  error_ytdlp:   "Will restart from metadata download",
-  error_whisper: "Will skip download, retry transcription only",
+  error_metadata:      "Will restart from the beginning",
+  error_audio:         "Will skip metadata, retry audio download",
+  error_transcription: "Will skip download, retry transcription only",
 };
 
 export default function RetryVideoButton({ videoId, queueStatus }: Props) {
@@ -22,7 +24,7 @@ export default function RetryVideoButton({ videoId, queueStatus }: Props) {
   const [msg, setMsg] = useState("");
   const router = useRouter();
 
-  if (!["error_ytdlp", "error_whisper"].includes(queueStatus)) return null;
+  if (!["error_metadata", "error_audio", "error_transcription"].includes(queueStatus)) return null;
 
   async function handleRetry() {
     setLoading(true);
