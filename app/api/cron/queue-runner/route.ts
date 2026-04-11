@@ -189,7 +189,12 @@ async function processItem(item: Record<string, unknown>) {
       signal: AbortSignal.timeout(15000),
     }).then(r => r.ok ? r.json() : null).catch(() => null);
     if (speedTest2?.speed_mbps) {
-      step(`Speed test: ${speedTest2.speed_mbps}MB/s — estimated download time: ~${speedTest2.eta_s}s for ~${speedTest2.expected_size_mb}MB`);
+      const meta2 = result.metadata as Record<string, unknown>;
+      const dur2 = (meta2?.duration as number) ?? 0;
+      const downloadMins2 = Math.min(dur2, 20 * 60) / 60;
+      const estimatedMb2 = Math.round(downloadMins2 * 0.25 * 10) / 10;
+      const etaSec2 = Math.round(estimatedMb2 / speedTest2.speed_mbps);
+      step(`Speed test: ${speedTest2.speed_mbps}MB/s — estimated ~${estimatedMb2}MB download in ~${etaSec2}s`);
     } else {
       step("Speed test failed — proceeding without estimate");
     }
@@ -256,13 +261,15 @@ async function processItem(item: Record<string, unknown>) {
     const duration = (meta.duration as number) ?? 0;
     await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
 
-    // Speed test first — log estimate before download starts
     const speedTest = await fetch(`${OCI}/speed-test`, {
       headers: { Authorization: `Bearer ${OCI_KEY}` },
       signal: AbortSignal.timeout(15000),
     }).then(r => r.ok ? r.json() : null).catch(() => null);
     if (speedTest?.speed_mbps) {
-      step(`Speed test: ${speedTest.speed_mbps}MB/s — estimated download time: ~${speedTest.eta_s}s for ~${speedTest.expected_size_mb}MB`);
+      const downloadMins = Math.min(duration, 20 * 60) / 60;
+      const estimatedMb = Math.round(downloadMins * 0.25 * 10) / 10; // ~0.25 MB/min at 16kHz mono mp3
+      const etaSec = Math.round(estimatedMb / speedTest.speed_mbps);
+      step(`Speed test: ${speedTest.speed_mbps}MB/s — estimated ~${estimatedMb}MB download in ~${etaSec}s`);
     } else {
       step("Speed test failed — proceeding without estimate");
     }
