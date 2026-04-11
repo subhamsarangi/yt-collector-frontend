@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
   const action = body_json.action === "RESET" ? "RESET" : "SOFTRESET";
 
   const host = `iaas.${REGION}.oraclecloud.com`;
-  const path = `/20160918/instances/${encodeURIComponent(INSTANCE_ID)}`;
+  const path = `/20160918/instances/${encodeURIComponent(INSTANCE_ID)}/action`;
   const url  = `https://${host}${path}`;
   const body = JSON.stringify({ action });
   const date = new Date().toUTCString();
@@ -90,13 +90,17 @@ export async function POST(req: NextRequest) {
     httpStatus = 500;
   }
 
-  // Log to reboot_logs
-  await supabaseAdmin.from("reboot_logs").insert({
-    instance_id: INSTANCE_ID,
-    status,
-    error,
-    action,
-  });
+  // Log to reboot_logs (non-fatal — don't let this crash the response)
+  try {
+    await supabaseAdmin.from("reboot_logs").insert({
+      instance_id: INSTANCE_ID,
+      status,
+      error,
+      action,
+    });
+  } catch (logErr) {
+    console.error("[reboot] Failed to write reboot_log:", logErr);
+  }
 
   if (httpStatus !== 200) {
     return NextResponse.json({ error }, { status: httpStatus });

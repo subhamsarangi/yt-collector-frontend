@@ -9,12 +9,6 @@ const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
 const MAX_RETRIES = 3;
 
-// Statuses that mean a job is actively running — don't start another
-const ACTIVE_STATUSES = ["metadata_processing", "audio_processing", "transcribing", "summarizing"];
-
-// Statuses that are safe resume points — pick these up and continue from where they left off
-const RESUMABLE_STATUSES = ["pending", "metadata_done", "audio_done"];
-
 async function ociPost(path: string, body: object) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 240000);
@@ -83,25 +77,15 @@ export async function POST(req: NextRequest) {
 }
 
 async function processQueue() {
-  const { data: inProgress } = await supabaseAdmin
-    .from("queue")
-    .select("id")
-    .in("status", ACTIVE_STATUSES)
-    .limit(1)
-    .single();
+  // Atomic claim: update a single pending/resumable item to metadata_processing in one query.
+  // Only one concurrent caller can succeed — the other gets no rows back.
+  const { data: claimed } = await supabaseAdmin.rpc("claim_next_queue_item");
 
-  if (inProgress) return NextResponse.json({ ok: true, message: "Job already in progress" });
+  if (!claimed || claimed.length === 0) {
+    return NextResponse.json({ ok: true, message: "Queue empty or already in progress" });
+  }
 
-  const { data: item } = await supabaseAdmin
-    .from("queue")
-    .select("*")
-    .in("status", RESUMABLE_STATUSES)
-    .or("retry_after.is.null,retry_after.lte." + new Date().toISOString())
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .single();
-
-  if (!item) return NextResponse.json({ ok: true, message: "Queue empty" });
+  const item = claimed[0];
 
   let timeoutHandle: ReturnType<typeof setTimeout>;
   const timeout = new Promise<never>((_, reject) => {
@@ -159,7 +143,8 @@ async function processQueue() {
 }
 
 async function processItem(item: Record<string, unknown>) {
-  const status = item.status as string;
+  // original_status is what the item was BEFORE the atomic claim set it to an active status
+  const originalStatus = (item.original_status ?? item.status) as string;
   const steps: Array<{ ts: string; text: string; ok?: boolean }> = [];
   const step = (text: string, ok = true) => {
     steps.push({ ts: new Date().toISOString(), text, ok });
@@ -170,23 +155,21 @@ async function processItem(item: Record<string, unknown>) {
 
   let result: Record<string, unknown>;
 
-  // ── Resume from audio_done: skip metadata + audio, go straight to transcription ──
-  if (status === "audio_done") {
+  // ── Resume from audio_done → transcribing ──
+  if (originalStatus === "audio_done") {
     step("Resuming from audio_done — fetching audio URL from DB");
     const { data: video } = await supabaseAdmin
       .from("videos").select("audio_r2_url, metadata").eq("youtube_id", item.youtube_id).single();
     if (!video?.audio_r2_url) throw new Error("audio_done but audio_r2_url missing — cannot resume");
     result = { audio_url: video.audio_r2_url, metadata: video.metadata };
 
-  // ── Resume from metadata_done: skip metadata fetch, redo audio download ──
-  } else if (status === "metadata_done") {
+  // ── Resume from metadata_done → audio_processing ──
+  } else if (originalStatus === "metadata_done") {
     step("Resuming from metadata_done — restarting audio download");
     const { data: video } = await supabaseAdmin
       .from("videos").select("metadata").eq("youtube_id", item.youtube_id).single();
     result = { metadata: video?.metadata ?? {} };
-    // Fall through to audio download below
 
-    await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
     step("Starting audio download...");
     await saveSteps();
     const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id });
@@ -198,8 +181,6 @@ async function processItem(item: Record<string, unknown>) {
 
   // ── Fresh start from pending ──
   } else {
-    await supabaseAdmin.from("queue").update({ status: "metadata_processing" }).eq("id", item.id);
-
     const ytdlpStartedAt = new Date().toISOString();
     const { data: existingLog } = await supabaseAdmin
       .from("processing_logs").select("id, steps").eq("queue_id", item.id).single();
