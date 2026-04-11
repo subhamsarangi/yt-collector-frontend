@@ -9,9 +9,9 @@ const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
 const MAX_RETRIES = 3;
 
-async function ociPost(path: string, body: object) {
+async function ociPost(path: string, body: object, timeoutMs = 240000) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 240000);
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(`${OCI}${path}`, {
       method: "POST",
@@ -160,8 +160,21 @@ async function processItem(item: Record<string, unknown>) {
     step("Resuming from audio_done — fetching audio URL from DB");
     const { data: video } = await supabaseAdmin
       .from("videos").select("audio_r2_url, metadata").eq("youtube_id", item.youtube_id).single();
-    if (!video?.audio_r2_url) throw new Error("audio_done but audio_r2_url missing — cannot resume");
-    result = { audio_url: video.audio_r2_url, metadata: video.metadata };
+
+    if (video?.audio_r2_url) {
+      result = { audio_url: video.audio_r2_url, metadata: video.metadata };
+    } else {
+      // Audio URL missing — download timed out before upload completed, re-download
+      step("audio_r2_url missing — re-downloading audio");
+      await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
+      await saveSteps();
+      const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id }, 600000);
+      step(`Audio downloaded  ${audioResult.size_mb ?? "?"}MB, ${audioResult.downloaded_duration_s ? Math.round(audioResult.downloaded_duration_s/60)+"min" : "?"} of audio, took ${audioResult.elapsed_s ?? "?"}s @ ${audioResult.speed_mbps ?? "?"}MB/s`);
+      await supabaseAdmin.from("videos").update({ audio_r2_url: audioResult.audio_url }).eq("youtube_id", item.youtube_id);
+      await supabaseAdmin.from("queue").update({ status: "audio_done" }).eq("id", item.id);
+      result = { audio_url: audioResult.audio_url, metadata: video?.metadata ?? {} };
+      await saveSteps();
+    }
 
   // ── Resume from metadata_done → audio_processing ──
   } else if (originalStatus === "metadata_done") {
@@ -172,8 +185,8 @@ async function processItem(item: Record<string, unknown>) {
 
     step("Starting audio download...");
     await saveSteps();
-    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id });
-    step(`Audio downloaded and uploaded to R2 (${audioResult.size_mb ?? "?"}MB)`);
+    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id }, 600000);
+    step(`Audio downloaded  ${audioResult.size_mb ?? "?"}MB, ${audioResult.downloaded_duration_s ? Math.round(audioResult.downloaded_duration_s/60)+"min" : "?"} of audio, took ${audioResult.elapsed_s ?? "?"}s @ ${audioResult.speed_mbps ?? "?"}MB/s`);
     await supabaseAdmin.from("videos").update({ audio_r2_url: audioResult.audio_url }).eq("youtube_id", item.youtube_id);
     result = { ...result, audio_url: audioResult.audio_url };
     await supabaseAdmin.from("queue").update({ status: "audio_done" }).eq("id", item.id);
@@ -235,8 +248,8 @@ async function processItem(item: Record<string, unknown>) {
     await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
     await saveSteps();
 
-    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id });
-    step(`Audio downloaded and uploaded to R2 (${audioResult.size_mb ?? "?"}MB)`);
+    const audioResult = await ociPost("/video/audio", { youtube_id: item.youtube_id }, 600000);
+    step(`Audio downloaded  ${audioResult.size_mb ?? "?"}MB, ${audioResult.downloaded_duration_s ? Math.round(audioResult.downloaded_duration_s/60)+"min" : "?"} of audio, took ${audioResult.elapsed_s ?? "?"}s @ ${audioResult.speed_mbps ?? "?"}MB/s`);
     await supabaseAdmin.from("videos").update({ audio_r2_url: audioResult.audio_url }).eq("youtube_id", item.youtube_id);
     result = { ...result, audio_url: audioResult.audio_url };
 
@@ -279,3 +292,6 @@ async function processItem(item: Record<string, unknown>) {
   step("Processing complete ✓");
   await supabaseAdmin.from("processing_logs").update({ whisper_done_at: new Date().toISOString(), steps }).eq("queue_id", item.id);
 }
+
+
+
