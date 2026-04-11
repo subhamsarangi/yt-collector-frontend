@@ -59,7 +59,7 @@ export default async function TopicsPage() {
           return (
             <div key={t.id} className="relative group">
               <Link href={`/topic/${t.id}`} className="block">
-                <div className="relative rounded-xl overflow-hidden aspect-square bg-neutral-900">
+                <div className="relative rounded-xl overflow-hidden aspect-square bg-neutral-900 border border-white/10 shadow-lg shadow-black/40">
                   {/* Thumbnail */}
                   {thumb ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -78,17 +78,16 @@ export default async function TopicsPage() {
                   {/* Topic name + count */}
                   <div className="absolute bottom-0 left-0 right-0 p-4">
                     <p
-                      className="text-white font-semibold leading-snug"
+                      className="topic-card-name text-white font-semibold leading-snug"
+                      // eslint-disable-next-line react/no-danger
+                      {...{} as object}
                       style={{
-                        fontSize: t.name.length < 15 ? "1.5rem"
-                          : t.name.length < 25 ? "1.25rem"
-                          : t.name.length < 40 ? "1rem"
-                          : t.name.length < 60 ? "0.875rem"
-                          : "0.75rem",
+                        fontSize: `${t.name.length < 15 ? 2 : t.name.length < 25 ? 1.75 : t.name.length < 40 ? 1.5 : t.name.length < 60 ? 1.25 : 1}rem`,
                         display: "-webkit-box",
                         WebkitLineClamp: 3,
                         WebkitBoxOrient: "vertical",
                         overflow: "hidden",
+                        lineHeight: 1.2,
                       }}
                     >{t.name}</p>
                     <p className="text-neutral-400 text-xs mt-1">{count} video{count !== 1 ? "s" : ""}</p>
