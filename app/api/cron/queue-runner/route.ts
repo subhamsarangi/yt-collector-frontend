@@ -157,6 +157,10 @@ async function processItem(item: Record<string, unknown>) {
 
   // ── Resume from audio_done → transcribing ──
   if (originalStatus === "audio_done") {
+    const { data: existingLog1 } = await supabaseAdmin
+      .from("processing_logs").select("steps").eq("queue_id", item.id).single();
+    steps.push(...((existingLog1?.steps as typeof steps) ?? []));
+
     step("Resuming from audio_done — fetching audio URL from DB");
     const { data: video } = await supabaseAdmin
       .from("videos").select("audio_r2_url, metadata").eq("youtube_id", item.youtube_id).single();
@@ -178,6 +182,10 @@ async function processItem(item: Record<string, unknown>) {
 
   // ── Resume from metadata_done → audio_processing ──
   } else if (originalStatus === "metadata_done") {
+    const { data: existingLog2 } = await supabaseAdmin
+      .from("processing_logs").select("steps").eq("queue_id", item.id).single();
+    steps.push(...((existingLog2?.steps as typeof steps) ?? []));
+
     step("Resuming from metadata_done — restarting audio download");
     const { data: video } = await supabaseAdmin
       .from("videos").select("metadata").eq("youtube_id", item.youtube_id).single();
