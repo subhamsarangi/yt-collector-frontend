@@ -168,7 +168,7 @@ async function processItem(item: Record<string, unknown>) {
       step("audio_r2_url missing — re-downloading audio");
       await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
       await saveSteps();
-      const audioResultRetry = await ociPost("/video/audio", { youtube_id: item.youtube_id }, 600000);
+      const audioResultRetry = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: (video?.metadata as Record<string, unknown>)?.duration ?? 0 }, 600000);
       step(`Audio downloaded — ${audioResultRetry.downloaded_duration_s ? Math.round(audioResultRetry.downloaded_duration_s/60)+"min" : "?min"} | ${audioResultRetry.size_mb ?? "?"}MB | ${audioResultRetry.elapsed_s ?? "?"}s @ ${audioResultRetry.speed_mbps ?? "?"}MB/s`);
       await supabaseAdmin.from("videos").update({ audio_r2_url: audioResultRetry.audio_url }).eq("youtube_id", item.youtube_id);
       await supabaseAdmin.from("queue").update({ status: "audio_done" }).eq("id", item.id);
@@ -195,7 +195,7 @@ async function processItem(item: Record<string, unknown>) {
     }
     step("Starting audio download... (downloading first 20 min)");
     await saveSteps();
-    const audioResultMd = await ociPost("/video/audio", { youtube_id: item.youtube_id }, 600000);
+    const audioResultMd = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: (result.metadata as Record<string, unknown>)?.duration ?? 0 }, 600000);
     step(`Audio downloaded — ${audioResultMd.downloaded_duration_s ? Math.round(audioResultMd.downloaded_duration_s/60)+"min" : "?min"} | ${audioResultMd.size_mb ?? "?"}MB | ${audioResultMd.elapsed_s ?? "?"}s @ ${audioResultMd.speed_mbps ?? "?"}MB/s`);
     await supabaseAdmin.from("videos").update({ audio_r2_url: audioResultMd.audio_url }).eq("youtube_id", item.youtube_id);
     result = { ...result, audio_url: audioResultMd.audio_url };
@@ -269,7 +269,7 @@ async function processItem(item: Record<string, unknown>) {
     step(`Starting audio download... (video is ${Math.round(duration / 60)} min${duration > 1200 ? ", downloading first 20 min" : ""})`);
     await saveSteps();
 
-    const audioResult2 = await ociPost("/video/audio", { youtube_id: item.youtube_id }, 600000);
+    const audioResult2 = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: duration }, 600000);
     step(`Audio downloaded — ${audioResult2.downloaded_duration_s ? Math.round(audioResult2.downloaded_duration_s/60)+"min" : "?min"} | ${audioResult2.size_mb ?? "?"}MB | ${audioResult2.elapsed_s ?? "?"}s @ ${audioResult2.speed_mbps ?? "?"}MB/s`);
     await supabaseAdmin.from("videos").update({ audio_r2_url: audioResult2.audio_url }).eq("youtube_id", item.youtube_id);
     result = { ...result, audio_url: audioResult2.audio_url };
