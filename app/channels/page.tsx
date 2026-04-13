@@ -4,6 +4,7 @@ import VideoCard from "@/components/VideoCard";
 import AddChannelForm from "../../components/AddChannelForm";
 import DeleteChannelButton from "../../components/DeleteChannelButton";
 import BulkImportChannels from "../../components/BulkImportChannels";
+import ScanChannelsButton from "../../components/ScanChannelsButton";
 
 export const revalidate = 60;
 
@@ -26,7 +27,10 @@ export default async function ChannelsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-xl font-bold">Channels</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold">Channels</h1>
+        {isOwner && <ScanChannelsButton />}
+      </div>
       {isOwner && <AddChannelForm />}
       {isOwner && <BulkImportChannels />}
 
