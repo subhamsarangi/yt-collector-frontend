@@ -32,6 +32,7 @@ export async function GET() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${OCI_KEY}` },
         body: JSON.stringify({ channel_url: channel.url }),
+        signal: AbortSignal.timeout(60_000), // 60s per channel
       });
     } catch (e) {
       console.error(`[scan-channels] Network error for ${channel.url}:`, e);
