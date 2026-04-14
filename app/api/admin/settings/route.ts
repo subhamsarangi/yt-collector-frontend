@@ -6,26 +6,39 @@ export async function GET() {
   const denied = await requireOwner();
   if (denied) return denied;
 
-  const { data } = await supabaseAdmin
+  const { data: rows } = await supabaseAdmin
     .from("settings")
     .select("key, value")
-    .eq("key", "audio_cap_minutes")
-    .single();
+    .in("key", ["audio_cap_minutes", "scan_videos_per_run"]);
 
-  return NextResponse.json({ audio_cap_minutes: data?.value ?? 10 });
+  const byKey = Object.fromEntries((rows ?? []).map((r) => [r.key, r.value]));
+
+  return NextResponse.json({
+    audio_cap_minutes: byKey["audio_cap_minutes"] ?? 10,
+    scan_videos_per_run: byKey["scan_videos_per_run"] ?? 20,
+  });
 }
 
 export async function POST(req: NextRequest) {
   const denied = await requireOwner();
   if (denied) return denied;
 
-  const { audio_cap_minutes } = await req.json();
-  const cap = Math.min(30, Math.max(5, Number(audio_cap_minutes)));
+  const body = await req.json();
+  const updates: { key: string; value: number }[] = [];
 
-  await supabaseAdmin.from("settings").upsert(
-    { key: "audio_cap_minutes", value: cap },
-    { onConflict: "key" }
-  );
+  if (body.audio_cap_minutes !== undefined) {
+    const cap = Math.min(30, Math.max(5, Number(body.audio_cap_minutes)));
+    updates.push({ key: "audio_cap_minutes", value: cap });
+  }
 
-  return NextResponse.json({ ok: true, audio_cap_minutes: cap });
+  if (body.scan_videos_per_run !== undefined) {
+    const limit = Math.min(100, Math.max(1, Number(body.scan_videos_per_run)));
+    updates.push({ key: "scan_videos_per_run", value: limit });
+  }
+
+  if (updates.length) {
+    await supabaseAdmin.from("settings").upsert(updates, { onConflict: "key" });
+  }
+
+  return NextResponse.json({ ok: true, ...Object.fromEntries(updates.map((u) => [u.key, u.value])) });
 }

@@ -5,6 +5,7 @@ import { createServerClient } from "@supabase/ssr";
 import CookieUpload from "@/components/CookieUpload";
 import RebootInstanceButton from "@/components/RebootInstanceButton";
 import AudioCapSlider from "@/components/AudioCapSlider";
+import ScanLimitSlider from "@/components/ScanLimitSlider";
 
 export const revalidate = 0;
 
@@ -79,6 +80,13 @@ export default async function AdminPage() {
     .single();
   const audioCap = (capSetting?.value as number) ?? 10;
 
+  const { data: scanLimitSetting } = await supabaseAdmin
+    .from("settings")
+    .select("value")
+    .eq("key", "scan_videos_per_run")
+    .single();
+  const scanLimit = (scanLimitSetting?.value as number) ?? 20;
+
   return (
     <div className="flex flex-col gap-8">
       <h1 className="text-xl font-bold">Admin</h1>
@@ -91,6 +99,11 @@ export default async function AdminPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Transcription</h2>
         <AudioCapSlider initial={audioCap} />
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Channel Scanning</h2>
+        <ScanLimitSlider initial={scanLimit} />
       </section>
 
       <section className="flex flex-col gap-3">

@@ -21,10 +21,22 @@ export async function GET() {
     return NextResponse.json({ ok: true, message: "No channels" });
   }
 
-  console.log(`[scan-channels] Found ${channels.length} channel(s) to scan`);
+  // Fetch the per-run video cap from settings (default 20)
+  const { data: limitSetting } = await supabaseAdmin
+    .from("settings")
+    .select("value")
+    .eq("key", "scan_videos_per_run")
+    .single();
+  const scanLimit: number = (limitSetting?.value as number) ?? 20;
+  console.log(`[scan-channels] Found ${channels.length} channel(s) to scan — cap: ${scanLimit} new videos per run`);
+
   let added = 0;
 
   for (const channel of channels) {
+    if (added >= scanLimit) {
+      console.log(`[scan-channels] Reached scan limit (${scanLimit}), stopping early`);
+      break;
+    }
     console.log(`[scan-channels] Scanning: ${channel.url}`);
     let res: Response;
     try {
@@ -76,6 +88,10 @@ export async function GET() {
       } else {
         console.log(`[scan-channels] Queued: ${youtube_id}`);
         added++;
+        if (added >= scanLimit) {
+          console.log(`[scan-channels] Reached scan limit (${scanLimit}), stopping early`);
+          break;
+        }
       }
     }
   }
