@@ -8,6 +8,16 @@ import ScanChannelsButton from "../../components/ScanChannelsButton";
 
 export const revalidate = 60;
 
+const ACTIVE_STATUSES = [
+  "pending",
+  "metadata_processing",
+  "metadata_done",
+  "audio_processing",
+  "audio_done",
+  "transcribing",
+  "summarizing",
+];
+
 export default async function ChannelsPage() {
   const role = await getUserRole();
   const isOwner = role === "owner";
@@ -18,12 +28,20 @@ export default async function ChannelsPage() {
 
   const domains = [...new Set(channels?.map((c) => c.domain) ?? [])];
 
-  const { data: videos } = await supabaseAdmin
-    .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at, channel_id")
-    .not("channel_id", "is", null)
-    .order("published_at", { ascending: false })
-    .limit(60);
+  const [{ data: videos }, { data: queueItems }] = await Promise.all([
+    supabaseAdmin
+      .from("videos")
+      .select("id, youtube_id, title, thumbnail_r2_url, published_at, channel_id")
+      .not("channel_id", "is", null)
+      .order("published_at", { ascending: false })
+      .limit(60),
+    supabaseAdmin
+      .from("queue")
+      .select("id, youtube_id, source_id, status, last_error")
+      .eq("source", "channel")
+      .in("status", ACTIVE_STATUSES)
+      .order("created_at", { ascending: false }),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">
@@ -40,6 +58,8 @@ export default async function ChannelsPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {channels?.filter((c) => c.domain === domain).map((channel) => {
               const channelVideos = videos?.filter((v) => v.channel_id === channel.id).slice(0, 3) ?? [];
+              const channelQueue = queueItems?.filter((q) => q.source_id === channel.id) ?? [];
+              const hasContent = channelVideos.length > 0 || channelQueue.length > 0;
               return (
                 <div key={channel.id} className="bg-neutral-900 rounded-xl overflow-hidden flex flex-col">
                   {/* Channel header */}
@@ -58,10 +78,21 @@ export default async function ChannelsPage() {
                     </a>
                     {isOwner && <DeleteChannelButton id={channel.id} />}
                   </div>
-                  {/* Latest videos */}
+                  {/* Queued / processing items */}
+                  {channelQueue.map((q) => (
+                    <VideoCard
+                      key={q.id}
+                      youtube_id={q.youtube_id}
+                      compact={true}
+                      queueStatus={q.status}
+                      borderStatus={q.status.startsWith("error_") ? "error" : "processing"}
+                      last_error={q.last_error}
+                    />
+                  ))}
+                  {/* Latest completed videos */}
                   <div className="flex flex-col gap-0 divide-y divide-neutral-800 flex-1">
                     {channelVideos.map((v) => <VideoCard key={v.id} {...v} compact={true} />)}
-                    {!channelVideos.length && (
+                    {!hasContent && (
                       <p className="text-xs text-neutral-600 px-4 py-3">No videos yet.</p>
                     )}
                   </div>
