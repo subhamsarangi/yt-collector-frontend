@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-export default function ScanChannelsButton() {
+export default function ScanChannelsButton({ channelCount }: { channelCount: number }) {
   const [state, setState] = useState<"idle" | "confirming" | "loading" | "done" | "error">("idle");
   const [added, setAdded] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -57,7 +57,7 @@ export default function ScanChannelsButton() {
               This will check all tracked channels for videos published in the last 24 hours and queue any new ones for processing.
             </p>
             <p className="text-xs text-neutral-600 mt-1">
-              ⏱ This may take a minute or two depending on how many channels you have.
+              ⏱ This may take a minute or two — you have {channelCount} channel{channelCount !== 1 ? "s" : ""} to scan.
             </p>
           </div>
           <div className="flex justify-end gap-2">

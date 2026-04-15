@@ -7,6 +7,7 @@ import CookieUpload from "@/components/CookieUpload";
 import RebootInstanceButton from "@/components/RebootInstanceButton";
 import AudioCapSlider from "@/components/AudioCapSlider";
 import ScanLimitSlider from "@/components/ScanLimitSlider";
+import MigrateChannelThumbnailsButton from "@/components/MigrateChannelThumbnailsButton";
 
 export const revalidate = 0;
 
@@ -113,6 +114,7 @@ export default async function AdminPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Channel Scanning</h2>
         <ScanLimitSlider initial={scanLimit} />
+        <MigrateChannelThumbnailsButton />
       </section>
 
       <section className="flex flex-col gap-3">

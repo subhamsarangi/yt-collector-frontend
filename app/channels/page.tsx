@@ -55,7 +55,7 @@ export default async function ChannelsPage() {
         {isOwner && (
           <div className="flex items-center gap-2">
             <LastScanModal />
-            <ScanChannelsButton />
+            <ScanChannelsButton channelCount={channels?.length ?? 0} />
           </div>
         )}
       </div>
@@ -64,7 +64,10 @@ export default async function ChannelsPage() {
 
       {domains.map((domain) => (
         <section key={domain}>
-          <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4">{domain}</h2>
+          <div className="flex items-center gap-4 mb-4">
+            <h2 className="text-base font-bold text-neutral-100 whitespace-nowrap">{domain}</h2>
+            <div className="flex-1 h-px bg-neutral-800" />
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {channels?.filter((c) => c.domain === domain).map((channel) => {
               const channelVideos = videos?.filter((v) => v.channel_id === channel.id) ?? [];

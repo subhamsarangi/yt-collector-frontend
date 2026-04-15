@@ -1,4 +1,4 @@
-import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, PutObjectCommand } from "@aws-sdk/client-s3";
 
 const client = new S3Client({
   region: "auto",
@@ -8,6 +8,24 @@ const client = new S3Client({
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
   },
 });
+
+const PUBLIC_URL = () => (process.env.R2_PUBLIC_URL ?? "").replace(/\/$/, "");
+
+export async function uploadToR2(
+  key: string,
+  data: Buffer | Uint8Array,
+  contentType: string
+): Promise<string> {
+  await client.send(
+    new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Key: key,
+      Body: data,
+      ContentType: contentType,
+    })
+  );
+  return `${PUBLIC_URL()}/${key}`;
+}
 
 export async function deleteFromR2(key: string) {
   await client.send(new DeleteObjectCommand({
