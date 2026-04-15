@@ -67,7 +67,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
       {/* Unified video + queue list */}
       {hasActivity && (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {(() => {
             const completedVideos = videos ?? [];
             const pendingItems = queueItems ?? [];

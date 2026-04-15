@@ -1,17 +1,25 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
-import VideoCard from "@/components/VideoCard";
 import Link from "next/link";
+import VideoFeed from "@/components/VideoFeed";
 
 export const revalidate = 60;
 
 export const metadata = { title: "Home" };
 
+const PAGE_SIZE = 20;
+
 export default async function Home() {
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at, channels(name)")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, created_at, channel_id, topic_id, channels(name), topics(name)")
     .order("created_at", { ascending: false })
-    .limit(20);
+    .limit(PAGE_SIZE);
+
+  const initialVideos = (videos ?? []) as any[];
+  const initialCursor =
+    initialVideos.length === PAGE_SIZE
+      ? initialVideos[initialVideos.length - 1].created_at
+      : null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -26,13 +34,11 @@ export default async function Home() {
 
       <section>
         <h2 className="text-sm font-semibold text-neutral-400 mb-3">Recent Videos</h2>
-        <div className="flex flex-col gap-3">
-          {videos?.map((v) => {
-            const ch = (v as any).channels;
-            return <VideoCard key={v.id} {...v} channel_name={ch?.name ?? null} />;
-          })}
-          {!videos?.length && <p className="text-neutral-500 text-sm">No videos yet.</p>}
-        </div>
+        {initialVideos.length === 0 ? (
+          <p className="text-neutral-500 text-sm">No videos yet.</p>
+        ) : (
+          <VideoFeed initialVideos={initialVideos} initialCursor={initialCursor} />
+        )}
       </section>
     </div>
   );

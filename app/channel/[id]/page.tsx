@@ -109,7 +109,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
 
       {/* Video list */}
       {allYtIds.length > 0 ? (
-        <div className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {allYtIds.map((ytId) => {
             const video = videoMap.get(ytId);
             const queueItem = queueMap.get(ytId);

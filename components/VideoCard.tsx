@@ -12,6 +12,8 @@ type Props = {
   compact?: boolean;
   channel_name?: string | null;
   channel_url?: string | null;
+  source?: "channel" | "topic" | null;
+  topic_name?: string | null;
   // undefined = complete (no border), "processing" = yellow, "error" = red
   borderStatus?: "processing" | "error";
   // queue status label shown when video data isn't available yet
@@ -81,6 +83,8 @@ export default function VideoCard({
   snippet,
   compact,
   channel_name,
+  source,
+  topic_name,
   borderStatus,
   queueStatus,
   last_error,
@@ -134,11 +138,13 @@ export default function VideoCard({
       {errorDot}
 
       {/* Thumbnail or placeholder */}
-      {thumbnail_r2_url ? (
-        <img src={thumbnail_r2_url} alt={title ?? ""} className="w-32 h-20 object-cover rounded flex-shrink-0" />
-      ) : (
-        <div className="w-32 h-20 rounded flex-shrink-0 bg-neutral-800 animate-pulse" />
-      )}
+      <div className="relative flex-shrink-0 w-32 h-20">
+        {thumbnail_r2_url ? (
+          <img src={thumbnail_r2_url} alt={title ?? ""} className="w-full h-full object-cover rounded" />
+        ) : (
+          <div className="w-full h-full rounded bg-neutral-800 animate-pulse" />
+        )}
+      </div>
 
       <div className="flex flex-col gap-1 min-w-0 justify-center">
         {/* Title or youtube_id fallback */}
@@ -149,9 +155,9 @@ export default function VideoCard({
         )}
 
         <div className="flex flex-wrap gap-2 text-xs text-neutral-500 mt-1">
-          {channel_name && <span>📺 {channel_name}</span>}
+          {channel_name && <span>{channel_name}</span>}
           {dateStr ? (
-            <span>🗓 {dateStr}</span>
+            <span>{dateStr}</span>
           ) : (
             <div className="h-2.5 w-20 rounded bg-neutral-800 animate-pulse" />
           )}
@@ -166,6 +172,13 @@ export default function VideoCard({
 
         {snippet && <p className="text-xs text-neutral-400 line-clamp-2 mt-1">{snippet}</p>}
       </div>
+
+      {/* Source badge — bottom-right corner of card, topic only */}
+      {source === "topic" && (
+        <span className="absolute bottom-0 right-0 bg-neutral-200 text-black text-[9px] font-semibold rounded-tl rounded-br-lg px-1.5 py-0.5 leading-none">
+          {topic_name ?? "Topic"}
+        </span>
+      )}
 
       {showError && last_error && (
         <ErrorModal error={last_error} onClose={() => setShowError(false)} />
