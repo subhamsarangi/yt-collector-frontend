@@ -91,7 +91,7 @@ export default async function UsagePage() {
       {/* yt-dlp section */}
       <section className="flex flex-col gap-3">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">yt-dlp</h2>
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {ytdlpEvents.map(event => (
             <UsageCard
               key={event}
@@ -110,7 +110,7 @@ export default async function UsagePage() {
       {/* Groq section */}
       <section className="flex flex-col gap-3">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Groq</h2>
-        <div className="flex flex-col gap-2">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {groqEvents.map(event => (
             <UsageCard
               key={event}

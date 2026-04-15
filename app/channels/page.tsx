@@ -5,6 +5,7 @@ import AddChannelForm from "../../components/AddChannelForm";
 import DeleteChannelButton from "../../components/DeleteChannelButton";
 import BulkImportChannels from "../../components/BulkImportChannels";
 import ScanChannelsButton from "../../components/ScanChannelsButton";
+import EditChannelModal from "../../components/EditChannelModal";
 
 export const revalidate = 60;
 
@@ -23,7 +24,7 @@ export default async function ChannelsPage() {
   const isOwner = role === "owner";
   const { data: channels } = await supabaseAdmin
     .from("channels")
-    .select("id, name, url, domain, thumbnail_url")
+    .select("id, name, url, domain, thumbnail_url, created_at")
     .order("domain");
 
   const domains = [...new Set(channels?.map((c) => c.domain) ?? [])];
@@ -76,6 +77,7 @@ export default async function ChannelsPage() {
                       className="font-medium text-sm hover:text-neutral-300 truncate flex-1">
                       {channel.name}
                     </a>
+                    {isOwner && <EditChannelModal channel={channel} />}
                     {isOwner && <DeleteChannelButton id={channel.id} />}
                   </div>
                   {/* Queued / processing items */}

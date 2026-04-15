@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 
 type ThresholdMap = Record<string, { hourly: number; daily: number }>;
 
@@ -57,10 +57,9 @@ export default function UsageThresholds({
         <span className="text-xs text-neutral-600 font-semibold text-right">Daily</span>
 
         {events.map(event => (
-          <>
-            <span key={`${event}-label`} className="text-sm text-neutral-300">{labels[event]}</span>
+          <Fragment key={event}>
+            <span className="text-sm text-neutral-300">{labels[event]}</span>
             <input
-              key={`${event}-hourly`}
               type="number"
               min={1}
               value={values[event].hourly}
@@ -68,14 +67,13 @@ export default function UsageThresholds({
               className="w-16 bg-neutral-800 text-white text-sm text-right rounded px-2 py-1 font-mono border border-neutral-700 focus:outline-none focus:border-neutral-500"
             />
             <input
-              key={`${event}-daily`}
               type="number"
               min={1}
               value={values[event].daily}
               onChange={e => update(event, "daily", Number(e.target.value))}
               className="w-16 bg-neutral-800 text-white text-sm text-right rounded px-2 py-1 font-mono border border-neutral-700 focus:outline-none focus:border-neutral-500"
             />
-          </>
+          </Fragment>
         ))}
       </div>
 
