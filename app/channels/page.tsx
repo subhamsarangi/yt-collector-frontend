@@ -7,6 +7,7 @@ import DeleteChannelButton from "../../components/DeleteChannelButton";
 import BulkImportChannels from "../../components/BulkImportChannels";
 import ScanChannelsButton from "../../components/ScanChannelsButton";
 import EditChannelModal from "../../components/EditChannelModal";
+import LastScanModal from "../../components/LastScanModal";
 
 export const revalidate = 60;
 
@@ -51,7 +52,12 @@ export default async function ChannelsPage() {
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Channels</h1>
-        {isOwner && <ScanChannelsButton />}
+        {isOwner && (
+          <div className="flex items-center gap-2">
+            <LastScanModal />
+            <ScanChannelsButton />
+          </div>
+        )}
       </div>
       {isOwner && <AddChannelForm />}
       {isOwner && <BulkImportChannels />}

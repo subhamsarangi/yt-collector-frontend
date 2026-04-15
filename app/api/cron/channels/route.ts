@@ -38,6 +38,7 @@ export async function GET() {
       console.log(`[scan-channels] Reached scan limit (${scanLimit}), stopping early`);
       break;
     }
+
     console.log(`[scan-channels] Scanning: ${channel.url}`);
     let res: Response;
     try {
@@ -45,23 +46,38 @@ export async function GET() {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${OCI_KEY}` },
         body: JSON.stringify({ channel_url: channel.url }),
-        signal: AbortSignal.timeout(60_000), // 60s per channel
+        signal: AbortSignal.timeout(60_000),
       });
     } catch (e) {
       console.error(`[scan-channels] Network error for ${channel.url}:`, e);
+      await logUsage("ytdlp_channel_scan", {
+        channel_url: channel.url,
+        channel_id: channel.id,
+        entries_found: 0,
+        queued: 0,
+        error: e instanceof Error ? e.message : "Network error",
+      });
       continue;
     }
 
     if (!res.ok) {
       const body = await res.text().catch(() => "(unreadable)");
       console.error(`[scan-channels] OCI returned ${res.status} for ${channel.url}: ${body}`);
+      await logUsage("ytdlp_channel_scan", {
+        channel_url: channel.url,
+        channel_id: channel.id,
+        entries_found: 0,
+        queued: 0,
+        error: `OCI ${res.status}`,
+      });
       continue;
     }
 
     const json = await res.json();
     const entries: { id?: string }[] = json.entries ?? [];
     console.log(`[scan-channels] Got ${entries.length} entries for ${channel.url}`);
-    await logUsage("ytdlp_channel_scan", { channel_url: channel.url, entries_found: entries.length });
+
+    let channelQueued = 0;
 
     for (const entry of entries) {
       const youtube_id = entry.id;
@@ -90,12 +106,20 @@ export async function GET() {
       } else {
         console.log(`[scan-channels] Queued: ${youtube_id}`);
         added++;
+        channelQueued++;
         if (added >= scanLimit) {
           console.log(`[scan-channels] Reached scan limit (${scanLimit}), stopping early`);
           break;
         }
       }
     }
+
+    await logUsage("ytdlp_channel_scan", {
+      channel_url: channel.url,
+      channel_id: channel.id,
+      entries_found: entries.length,
+      queued: channelQueued,
+    });
   }
 
   console.log(`[scan-channels] Done — ${added} new video(s) queued`);
