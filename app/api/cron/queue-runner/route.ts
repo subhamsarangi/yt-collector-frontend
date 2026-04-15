@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import Groq from "groq-sdk";
 import { deleteFromR2 } from "@/lib/r2";
+import { logUsage } from "@/lib/logUsage";
 
 export const maxDuration = 300; // Vercel max; internal 270s soft timeout leaves 30s buffer
 
@@ -45,11 +46,20 @@ async function transcribeWithGroq(audioUrl: string): Promise<string> {
   }
 
   const audioFile = new File([audioBlob], "audio.mp3", { type: "audio/mpeg" });
+  const t0 = Date.now();
   const result = await groq.audio.transcriptions.create({
     file: audioFile,
     model: "whisper-large-v3-turbo",
     response_format: "verbose_json",
     language: "en",
+  });
+  const elapsed_ms = Date.now() - t0;
+  const size_mb = Math.round(audioBlob.size / 1024 / 1024 * 100) / 100;
+
+  await logUsage("groq_whisper", {
+    model: "whisper-large-v3-turbo",
+    size_mb,
+    elapsed_ms,
   });
 
   type Segment = { start: number; text: string };
@@ -192,6 +202,7 @@ async function processItem(item: Record<string, unknown>) {
       await saveSteps();
       const audioResultRetry = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: (video?.metadata as Record<string, unknown>)?.duration ?? 0, cap_seconds: CAP_SECONDS }, 600000);
       step(`Audio downloaded — ${audioResultRetry.downloaded_duration_s ? Math.round(audioResultRetry.downloaded_duration_s/60)+"min" : "?min"} | ${audioResultRetry.size_mb ?? "?"}MB | ${audioResultRetry.elapsed_s ?? "?"}s @ ${audioResultRetry.speed_mbps ?? "?"}MB/s`);
+      await logUsage("ytdlp_audio", { youtube_id: item.youtube_id, size_mb: audioResultRetry.size_mb, elapsed_s: audioResultRetry.elapsed_s, downloaded_duration_s: audioResultRetry.downloaded_duration_s });
       await supabaseAdmin.from("videos").update({ audio_r2_url: audioResultRetry.audio_url }).eq("youtube_id", item.youtube_id);
       await supabaseAdmin.from("queue").update({ status: "audio_done" }).eq("id", item.id);
       result = { audio_url: audioResultRetry.audio_url, metadata: video?.metadata ?? {} };
@@ -229,6 +240,7 @@ async function processItem(item: Record<string, unknown>) {
     await saveSteps();
     const audioResultMd = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: (result.metadata as Record<string, unknown>)?.duration ?? 0, cap_seconds: CAP_SECONDS }, 600000);
     step(`Audio downloaded — ${audioResultMd.downloaded_duration_s ? Math.round(audioResultMd.downloaded_duration_s/60)+"min" : "?min"} | ${audioResultMd.size_mb ?? "?"}MB | ${audioResultMd.elapsed_s ?? "?"}s @ ${audioResultMd.speed_mbps ?? "?"}MB/s`);
+    await logUsage("ytdlp_audio", { youtube_id: item.youtube_id, size_mb: audioResultMd.size_mb, elapsed_s: audioResultMd.elapsed_s, downloaded_duration_s: audioResultMd.downloaded_duration_s });
     await supabaseAdmin.from("videos").update({ audio_r2_url: audioResultMd.audio_url }).eq("youtube_id", item.youtube_id);
     result = { ...result, audio_url: audioResultMd.audio_url };
     await supabaseAdmin.from("queue").update({ status: "audio_done" }).eq("id", item.id);
@@ -258,6 +270,7 @@ async function processItem(item: Record<string, unknown>) {
     result = await ociPost("/video", { youtube_id: item.youtube_id });
     const meta = result.metadata as Record<string, unknown>;
     step(`Metadata fetched — title: "${meta.title}", duration: ${meta.duration}s`);
+    await logUsage("ytdlp_metadata", { youtube_id: item.youtube_id, duration_s: meta.duration });
 
     await supabaseAdmin.from("videos").upsert({
       youtube_id: item.youtube_id,
@@ -306,6 +319,7 @@ async function processItem(item: Record<string, unknown>) {
 
     const audioResult2 = await ociPost("/video/audio", { youtube_id: item.youtube_id, duration_seconds: duration, cap_seconds: CAP_SECONDS }, 600000);
     step(`Audio downloaded — ${audioResult2.downloaded_duration_s ? Math.round(audioResult2.downloaded_duration_s/60)+"min" : "?min"} | ${audioResult2.size_mb ?? "?"}MB | ${audioResult2.elapsed_s ?? "?"}s @ ${audioResult2.speed_mbps ?? "?"}MB/s`);
+    await logUsage("ytdlp_audio", { youtube_id: item.youtube_id, size_mb: audioResult2.size_mb, elapsed_s: audioResult2.elapsed_s, downloaded_duration_s: audioResult2.downloaded_duration_s });
     await supabaseAdmin.from("videos").update({ audio_r2_url: audioResult2.audio_url }).eq("youtube_id", item.youtube_id);
     result = { ...result, audio_url: audioResult2.audio_url };
 
@@ -337,6 +351,7 @@ async function processItem(item: Record<string, unknown>) {
     const sumRes = await ociPost("/summarize", { transcript });
     summary = sumRes.summary ?? null;
     step(`Summarization done — ${summary?.split("\n").length ?? 0} bullet points`);
+    await logUsage("groq_kimi", { youtube_id: item.youtube_id, transcript_chars: transcript.length, bullets: summary?.split("\n").length ?? 0 });
   } catch (e) {
     step(`Summarization failed (non-fatal): ${e instanceof Error ? e.message : String(e)}`, false);
   }

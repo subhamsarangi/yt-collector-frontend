@@ -6,6 +6,7 @@ import ExportPdfButton from "@/components/ExportPdfButton";
 import DeleteVideoButton from "@/components/DeleteVideoButton";
 import ProcessingLog from "@/components/ProcessingLog";
 import RetryVideoButton from "@/components/RetryVideoButton";
+import TranscribeButton from "@/components/TranscribeButton";
 
 export const revalidate = 0;
 
@@ -47,6 +48,15 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
     : { data: null };
   const processingSteps = (procLog?.steps as Array<{ ts: string; text: string; ok?: boolean }>) ?? [];
   const queueStatus = queueRow?.status ?? null;
+
+  const activeStatuses = new Set([
+    "pending", "metadata_processing", "metadata_done",
+    "audio_processing", "audio_done", "transcribing", "summarizing",
+  ]);
+  const isProcessing = queueStatus ? activeStatuses.has(queueStatus) : false;
+  const showTranscribeButton =
+    isOwner && !video.transcript && !isProcessing &&
+    (!queueStatus || queueStatus === "complete" || queueStatus.startsWith("error_"));
 
   return (
     <div className="flex flex-col gap-6">
@@ -238,7 +248,12 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
       )}
 
       {!video.transcript && (
-        <p className="text-neutral-500 text-sm">Transcript not available yet.</p>
+        <div className="flex flex-col gap-3">
+          {showTranscribeButton && <TranscribeButton videoId={id} />}
+          {!showTranscribeButton && (
+            <p className="text-neutral-500 text-sm">Transcript not available yet.</p>
+          )}
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/supabase/requireOwner";
+import { logUsage } from "@/lib/logUsage";
 
 const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
@@ -121,6 +122,8 @@ export async function POST(req: NextRequest) {
       }
 
       await send({ done: true, topic_id, added });
+      await logUsage("ytdlp_topic_search", { topic, results_found: results.length, queued: added });
+      await logUsage("groq_qwen", { topic, queries_generated: 5 });
     } catch (e) {
       await send({ error: e instanceof Error ? e.message : "Unexpected error" });
     } finally {

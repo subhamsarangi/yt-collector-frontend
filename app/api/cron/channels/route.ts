@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase/server";
+import { logUsage } from "@/lib/logUsage";
 
 const OCI = process.env.OCI_API_URL!;
 const OCI_KEY = process.env.OCI_API_KEY!;
@@ -60,6 +61,7 @@ export async function GET() {
     const json = await res.json();
     const entries: { id?: string }[] = json.entries ?? [];
     console.log(`[scan-channels] Got ${entries.length} entries for ${channel.url}`);
+    await logUsage("ytdlp_channel_scan", { channel_url: channel.url, entries_found: entries.length });
 
     for (const entry of entries) {
       const youtube_id = entry.id;

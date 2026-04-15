@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/supabase/userRole";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
+import Link from "next/link";
 import CookieUpload from "@/components/CookieUpload";
 import RebootInstanceButton from "@/components/RebootInstanceButton";
 import AudioCapSlider from "@/components/AudioCapSlider";
@@ -94,6 +95,14 @@ export default async function AdminPage() {
       <section className="flex flex-col gap-3">
         <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Server</h2>
         <RebootInstanceButton />
+        <Link
+          href="/admin/usage"
+          className="text-sm text-neutral-400 hover:text-white transition flex items-center gap-2 bg-neutral-900 rounded-lg px-4 py-3"
+        >
+          <span>📊</span>
+          <span>API Usage &amp; Rate Limits</span>
+          <span className="ml-auto text-neutral-600">→</span>
+        </Link>
       </section>
 
       <section className="flex flex-col gap-3">

@@ -8,8 +8,13 @@ import TopNav from "@/components/TopNav";
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const lora = Lora({ variable: "--font-lora", subsets: ["latin"], style: ["normal", "italic"] });
 
+const isDev = process.env.NODE_ENV === "development";
+
 export const metadata: Metadata = {
-  title: "YT Collector",
+  title: {
+    default: isDev ? "[dev] YT Collector" : "YT Collector",
+    template: isDev ? "[dev] %s" : "%s",
+  },
   description: "YouTube scraping, transcription & search platform",
   icons: { icon: "/favicon.ico" },
 };
