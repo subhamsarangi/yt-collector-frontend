@@ -159,25 +159,27 @@ export default function LastScanModal() {
                       className="flex flex-col items-center gap-1 group"
                       title={`${ch.channel_name ?? ch.channel_url}\n${ch.entries_found} new · ${ch.queued} queued${ch.error ? `\nError: ${ch.error}` : ""}`}
                     >
-                      <div className={`relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0 ring-2 ${
-                        ch.error
-                          ? "ring-red-600"
-                          : ch.entries_found > 0
-                          ? "ring-green-600"
-                          : "ring-neutral-700"
-                      }`}>
-                        {ch.thumbnail_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={ch.thumbnail_url}
-                            alt={ch.channel_name ?? ""}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full bg-neutral-700 flex items-center justify-center text-xs font-bold">
-                            {(ch.channel_name ?? ch.channel_url ?? "?")[0]?.toUpperCase()}
-                          </div>
-                        )}
+                      <div className="relative w-10 h-10 flex-shrink-0">
+                        <div className={`w-full h-full rounded-full overflow-hidden ring-2 ${
+                          ch.error
+                            ? "ring-red-600"
+                            : ch.entries_found > 0
+                            ? "ring-green-600"
+                            : "ring-neutral-700"
+                        }`}>
+                          {ch.thumbnail_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={ch.thumbnail_url}
+                              alt={ch.channel_name ?? ""}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-neutral-700 flex items-center justify-center text-xs font-bold">
+                              {(ch.channel_name ?? ch.channel_url ?? "?")[0]?.toUpperCase()}
+                            </div>
+                          )}
+                        </div>
                         {/* Badge: new video count */}
                         {ch.entries_found > 0 && (
                           <span className="absolute -top-0.5 -right-0.5 bg-green-500 text-black text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center leading-none">

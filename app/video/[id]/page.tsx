@@ -10,6 +10,12 @@ import TranscribeButton from "@/components/TranscribeButton";
 
 export const revalidate = 0;
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { data } = await supabaseAdmin.from("videos").select("title").eq("id", id).single();
+  return { title: data?.title ?? "Video" };
+}
+
 function formatDuration(seconds: number) {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);

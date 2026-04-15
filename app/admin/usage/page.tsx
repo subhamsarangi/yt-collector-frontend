@@ -6,6 +6,8 @@ import UsageThresholds from "@/components/UsageThresholds";
 
 export const revalidate = 0;
 
+export const metadata = { title: "API Usage" };
+
 // ── Default thresholds (can be overridden via settings) ──────────────────────
 const DEFAULT_THRESHOLDS: Record<string, { hourly: number; daily: number }> = {
   ytdlp_channel_scan: { hourly: 10,  daily: 50  },

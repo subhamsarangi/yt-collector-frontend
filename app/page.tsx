@@ -4,6 +4,8 @@ import Link from "next/link";
 
 export const revalidate = 60;
 
+export const metadata = { title: "Home" };
+
 export default async function Home() {
   const { data: videos } = await supabaseAdmin
     .from("videos")

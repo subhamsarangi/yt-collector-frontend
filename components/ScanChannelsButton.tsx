@@ -1,10 +1,48 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
+const COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+const LS_KEY = "scan_channels_last_triggered";
+
+function getCooldownRemaining(): number {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return 0;
+    const elapsed = Date.now() - parseInt(raw, 10);
+    return Math.max(0, COOLDOWN_MS - elapsed);
+  } catch {
+    return 0;
+  }
+}
+
+function formatRemaining(ms: number): string {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
 export default function ScanChannelsButton({ channelCount }: { channelCount: number }) {
   const [state, setState] = useState<"idle" | "confirming" | "loading" | "done" | "error">("idle");
   const [added, setAdded] = useState<number | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
+
+  // Initialise cooldown from localStorage on mount
+  useEffect(() => {
+    setCooldownRemaining(getCooldownRemaining());
+  }, []);
+
+  // Tick down the cooldown every second while active
+  useEffect(() => {
+    if (cooldownRemaining <= 0) return;
+    const id = setInterval(() => {
+      const remaining = getCooldownRemaining();
+      setCooldownRemaining(remaining);
+      if (remaining <= 0) clearInterval(id);
+    }, 1000);
+    return () => clearInterval(id);
+  }, [cooldownRemaining]);
 
   useEffect(() => {
     const el = dialogRef.current;
@@ -19,6 +57,12 @@ export default function ScanChannelsButton({ channelCount }: { channelCount: num
 
   async function handleScan() {
     setState("loading");
+    // Record the start time immediately so the cooldown kicks in right away
+    try {
+      localStorage.setItem(LS_KEY, Date.now().toString());
+    } catch {}
+    setCooldownRemaining(COOLDOWN_MS);
+
     try {
       const res = await fetch("/api/cron/channels");
       const data = await res.json();
@@ -32,17 +76,25 @@ export default function ScanChannelsButton({ channelCount }: { channelCount: num
     }
   }
 
+  const isCoolingDown = cooldownRemaining > 0;
+  const isDisabled = state === "loading" || isCoolingDown;
+
   return (
     <>
       <button
-        onClick={() => setState("confirming")}
-        disabled={state === "loading"}
-        className="text-sm px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 transition cursor-pointer"
+        onClick={() => !isDisabled && setState("confirming")}
+        disabled={isDisabled}
+        title={isCoolingDown ? `Available again in ${formatRemaining(cooldownRemaining)}` : undefined}
+        className="text-sm px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
       >
         {state === "loading" && "Scanning…"}
         {state === "done" && `Done — ${added} new video${added === 1 ? "" : "s"} queued`}
         {state === "error" && "Scan failed"}
-        {(state === "idle" || state === "confirming") && "Scan channels (last 24h)"}
+        {(state === "idle" || state === "confirming") && (
+          isCoolingDown
+            ? `Scan channels (${formatRemaining(cooldownRemaining)})`
+            : "Scan channels (last 24h)"
+        )}
       </button>
 
       <dialog

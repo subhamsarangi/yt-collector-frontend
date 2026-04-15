@@ -9,6 +9,12 @@ import { notFound } from "next/navigation";
 
 export const revalidate = 0;
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { data } = await supabaseAdmin.from("topics").select("name").eq("id", id).single();
+  return { title: data?.name ?? "Topic" };
+}
+
 export default async function TopicPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const role = await getUserRole();

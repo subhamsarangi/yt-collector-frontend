@@ -8,6 +8,12 @@ import DeleteChannelButton from "@/components/DeleteChannelButton";
 
 export const revalidate = 0;
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const { data } = await supabaseAdmin.from("channels").select("name").eq("id", id).single();
+  return { title: data?.name ?? "Channel" };
+}
+
 export default async function ChannelPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const role = await getUserRole();

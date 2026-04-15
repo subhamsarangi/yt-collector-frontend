@@ -11,6 +11,8 @@ import LastScanModal from "../../components/LastScanModal";
 
 export const revalidate = 60;
 
+export const metadata = { title: "Channels" };
+
 const ACTIVE_STATUSES = [
   "pending",
   "metadata_processing",
@@ -38,8 +40,8 @@ export default async function ChannelsPage() {
       .from("videos")
       .select("id, youtube_id, title, thumbnail_r2_url, published_at, channel_id")
       .not("channel_id", "is", null)
-      .gte("published_at", since24h)
-      .order("published_at", { ascending: false }),
+      .gte("created_at", since24h)
+      .order("created_at", { ascending: false }),
     supabaseAdmin
       .from("queue")
       .select("id, youtube_id, source_id, status, last_error")

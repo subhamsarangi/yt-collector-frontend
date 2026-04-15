@@ -1,6 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import VideoCard from "@/components/VideoCard";
 
+export const metadata = { title: "Search" };
+
 export default async function SearchPage({
   searchParams,
 }: {

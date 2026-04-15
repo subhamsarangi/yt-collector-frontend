@@ -11,6 +11,8 @@ import MigrateChannelThumbnailsButton from "@/components/MigrateChannelThumbnail
 
 export const revalidate = 0;
 
+export const metadata = { title: "Admin" };
+
 export default async function AdminPage() {
   const role = await getUserRole();
 

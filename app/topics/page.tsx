@@ -6,6 +6,8 @@ import DeleteTopicButton from "@/components/DeleteTopicButton";
 
 export const revalidate = 60;
 
+export const metadata = { title: "Topics" };
+
 export default async function TopicsPage() {
   const role = await getUserRole();
   const isOwner = role === "owner";
