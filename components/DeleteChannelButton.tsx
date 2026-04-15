@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-export default function DeleteChannelButton({ id }: { id: string }) {
+export default function DeleteChannelButton({ id, redirect }: { id: string; redirect?: string }) {
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -12,7 +12,11 @@ export default function DeleteChannelButton({ id }: { id: string }) {
     await fetch(`/api/channels/${id}/delete`, { method: "POST" });
     setLoading(false);
     setConfirming(false);
-    router.refresh();
+    if (redirect) {
+      router.push(redirect);
+    } else {
+      router.refresh();
+    }
   }
 
   if (confirming) {

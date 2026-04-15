@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/supabase/userRole";
+import Link from "next/link";
 import VideoCard from "@/components/VideoCard";
 import AddChannelForm from "../../components/AddChannelForm";
 import DeleteChannelButton from "../../components/DeleteChannelButton";
@@ -73,10 +74,10 @@ export default async function ChannelsPage() {
                         {channel.name[0]}
                       </div>
                     )}
-                    <a href={channel.url} target="_blank" rel="noopener noreferrer"
+                    <Link href={`/channel/${channel.id}`}
                       className="font-medium text-sm hover:text-neutral-300 truncate flex-1">
                       {channel.name}
-                    </a>
+                    </Link>
                     {isOwner && <EditChannelModal channel={channel} />}
                     {isOwner && <DeleteChannelButton id={channel.id} />}
                   </div>
