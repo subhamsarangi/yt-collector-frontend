@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireOwner } from "@/lib/supabase/requireOwner";
+import { getUserRole } from "@/lib/supabase/userRole";
 import { supabaseAdmin } from "@/lib/supabase/server";
 
 export async function GET() {
-  const denied = await requireOwner();
-  if (denied) return denied;
+  const role = await getUserRole();
+  if (!role) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   // Find the most recent ytdlp_channel_scan event
   const { data: latest } = await supabaseAdmin

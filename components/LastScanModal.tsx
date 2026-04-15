@@ -47,6 +47,18 @@ export default function LastScanModal() {
     else el.close();
   }, [open]);
 
+  // Sync state when Escape closes the dialog natively
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    const handleCancel = (e: Event) => {
+      e.preventDefault(); // let our state drive the close
+      setOpen(false);
+    };
+    el.addEventListener("cancel", handleCancel);
+    return () => el.removeEventListener("cancel", handleCancel);
+  }, []);
+
   function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
     if (e.target === dialogRef.current) setOpen(false);
   }

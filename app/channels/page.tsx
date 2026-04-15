@@ -50,10 +50,10 @@ export default async function ChannelsPage() {
     <div className="flex flex-col gap-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">Channels</h1>
-        {isOwner && (
+        {role !== null && (
           <div className="flex items-center gap-2">
             <LastScanModal />
-            <ScanChannelsButton channelCount={channels?.length ?? 0} />
+            {isOwner && <ScanChannelsButton channelCount={channels?.length ?? 0} />}
           </div>
         )}
       </div>

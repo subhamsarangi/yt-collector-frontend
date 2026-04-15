@@ -51,6 +51,18 @@ export default function ScanChannelsButton({ channelCount }: { channelCount: num
     else el.close();
   }, [state]);
 
+  // Sync state when Escape closes the dialog natively
+  useEffect(() => {
+    const el = dialogRef.current;
+    if (!el) return;
+    const handleCancel = (e: Event) => {
+      e.preventDefault();
+      setState("idle");
+    };
+    el.addEventListener("cancel", handleCancel);
+    return () => el.removeEventListener("cancel", handleCancel);
+  }, []);
+
   function handleBackdropClick(e: React.MouseEvent<HTMLDialogElement>) {
     if (e.target === dialogRef.current) setState("idle");
   }
