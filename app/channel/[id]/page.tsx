@@ -3,8 +3,8 @@ import { getUserRole } from "@/lib/supabase/userRole";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import VideoCard from "@/components/VideoCard";
-import DeleteChannelButton from "@/components/DeleteChannelButton";
 import EditChannelModal from "@/components/EditChannelModal";
+import DeleteChannelButton from "@/components/DeleteChannelButton";
 
 export const revalidate = 0;
 
@@ -86,7 +86,6 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
         {isOwner && (
           <div className="flex items-center gap-2 flex-shrink-0">
             <EditChannelModal channel={channel} />
-            <DeleteChannelButton id={channel.id} redirect="/channels" />
           </div>
         )}
       </div>
@@ -137,6 +136,14 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
         </div>
       ) : (
         <p className="text-neutral-500 text-sm">No videos yet.</p>
+      )}
+
+      {/* Danger zone */}
+      {isOwner && (
+        <div className="mt-8 border-t border-neutral-800 pt-6 flex flex-col gap-3">
+          <p className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Danger zone</p>
+          <DeleteChannelButton id={channel.id} redirect="/channels" />
+        </div>
       )}
     </div>
   );

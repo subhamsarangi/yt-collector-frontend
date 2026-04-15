@@ -30,13 +30,15 @@ export default async function ChannelsPage() {
 
   const domains = [...new Set(channels?.map((c) => c.domain) ?? [])];
 
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
   const [{ data: videos }, { data: queueItems }] = await Promise.all([
     supabaseAdmin
       .from("videos")
       .select("id, youtube_id, title, thumbnail_r2_url, published_at, channel_id")
       .not("channel_id", "is", null)
-      .order("published_at", { ascending: false })
-      .limit(60),
+      .gte("published_at", since24h)
+      .order("published_at", { ascending: false }),
     supabaseAdmin
       .from("queue")
       .select("id, youtube_id, source_id, status, last_error")
@@ -59,7 +61,7 @@ export default async function ChannelsPage() {
           <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider mb-4">{domain}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {channels?.filter((c) => c.domain === domain).map((channel) => {
-              const channelVideos = videos?.filter((v) => v.channel_id === channel.id).slice(0, 3) ?? [];
+              const channelVideos = videos?.filter((v) => v.channel_id === channel.id) ?? [];
               const channelQueue = queueItems?.filter((q) => q.source_id === channel.id) ?? [];
               const hasContent = channelVideos.length > 0 || channelQueue.length > 0;
               return (
@@ -79,7 +81,6 @@ export default async function ChannelsPage() {
                       {channel.name}
                     </Link>
                     {isOwner && <EditChannelModal channel={channel} />}
-                    {isOwner && <DeleteChannelButton id={channel.id} />}
                   </div>
                   {/* Queued / processing items */}
                   {channelQueue.map((q) => (

@@ -60,7 +60,7 @@ export default function EditChannelModal({ channel }: { channel: Channel }) {
     setSaving(false);
     if (res.ok) {
       setOpen(false);
-      router.refresh();
+      router.push(`/channel/${channel.id}`);
     } else {
       const data = await res.json();
       setError(data.error ?? "Failed to save.");
@@ -75,15 +75,16 @@ export default function EditChannelModal({ channel }: { channel: Channel }) {
       <button
         onClick={handleOpen}
         title="Edit channel"
-        className="text-neutral-600 hover:text-neutral-300 transition text-sm leading-none"
+        className="flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white transition cursor-pointer"
       >
-        ✎
+        <span>✎</span>
+        <span>Edit</span>
       </button>
 
       <dialog
         ref={dialogRef}
         onClick={handleBackdropClick}
-        className="bg-neutral-900 text-neutral-100 rounded-xl p-0 w-full max-w-md shadow-2xl border border-neutral-800 backdrop:bg-black/60"
+        className="bg-neutral-900 text-neutral-100 rounded-xl p-0 w-full max-w-md shadow-2xl border border-neutral-800 backdrop:bg-black/60 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
       >
         <form onSubmit={handleSave}>
           {/* Header */}
@@ -105,7 +106,7 @@ export default function EditChannelModal({ channel }: { channel: Channel }) {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="text-neutral-500 hover:text-white transition text-lg leading-none"
+              className="text-neutral-500 hover:text-white transition text-lg leading-none cursor-pointer"
             >
               ✕
             </button>
@@ -166,14 +167,14 @@ export default function EditChannelModal({ channel }: { channel: Channel }) {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="text-sm text-neutral-500 hover:text-white px-3 py-1.5 transition"
+              className="text-sm text-neutral-500 hover:text-white px-3 py-1.5 transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving || !domain || domain === channel.domain}
-              className="text-sm bg-white text-black rounded px-4 py-1.5 font-medium hover:bg-neutral-200 disabled:opacity-40 transition"
+              className="text-sm bg-white text-black rounded px-4 py-1.5 font-medium hover:bg-neutral-200 disabled:opacity-40 transition cursor-pointer"
             >
               {saving ? "Saving..." : "Save"}
             </button>
