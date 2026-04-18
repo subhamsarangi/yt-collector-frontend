@@ -81,7 +81,7 @@ export default function TopicSearchForm() {
           <input
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
-            placeholder="Search a topic..."
+            placeholder="Enter topic name..."
             required
             disabled={loading}
             className="flex-1 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm disabled:opacity-50"
@@ -91,7 +91,7 @@ export default function TopicSearchForm() {
             disabled={loading}
             className="bg-white text-black rounded px-4 py-2 text-sm font-medium hover:bg-neutral-200 disabled:opacity-50 whitespace-nowrap"
           >
-            {loading ? "Searching..." : "Search"}
+            {loading ? "Creating..." : "Create"}
           </button>
         </div>
         <label className="flex items-center gap-2 cursor-pointer w-fit select-none">

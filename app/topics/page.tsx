@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/supabase/userRole";
 import Link from "next/link";
 import TopicSearchForm from "@/components/TopicSearchForm";
+import TopicsFilter from "@/components/TopicsFilter";
 import DeleteTopicButton from "@/components/DeleteTopicButton";
 
 export const revalidate = 60;
@@ -48,10 +49,20 @@ export default async function TopicsPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">Topics</h1>
-      {isOwner && <TopicSearchForm />}
+
+      {isOwner && (
+        <div className="bg-neutral-900 border border-neutral-800 rounded-lg p-4">
+          <h2 className="text-sm font-semibold text-neutral-400 mb-3 uppercase tracking-wider">Create new topic</h2>
+          <TopicSearchForm />
+        </div>
+      )}
 
       {!topics?.length && (
         <p className="text-neutral-500 text-sm">No topics yet. Search for one above.</p>
+      )}
+
+      {topics && topics.length > 0 && (
+        <TopicsFilter />
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -59,7 +70,7 @@ export default async function TopicsPage() {
           const thumb = pickThumb(t.id);
           const count = countMap[t.id] ?? 0;
           return (
-            <div key={t.id} className="relative group">
+            <div key={t.id} className="relative group" data-topic-card data-topic-name={t.name}>
               <Link href={`/topic/${t.id}`} className="block">
                 <div className="relative rounded-xl overflow-hidden aspect-square bg-neutral-900 border border-white/10 shadow-lg shadow-black/40">
                   {/* Thumbnail */}

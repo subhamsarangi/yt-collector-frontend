@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
-import VideoCard from "@/components/VideoCard";
+import SearchForm from "@/components/SearchForm";
+import SearchFeed from "@/components/SearchFeed";
 
 export const metadata = { title: "Search" };
 
@@ -11,18 +12,40 @@ export default async function SearchPage({
   const { q, channel, topic } = await searchParams;
 
   let videos: any[] = [];
+  let nextCursor: string | null = null;
+  let totalCount = 0;
 
   if (q) {
+    const PAGE_SIZE = 10;
+
+    // Get total count — search title + description + transcript
+    const { count } = await supabaseAdmin
+      .from("videos")
+      .select("id", { count: "exact", head: true })
+      .or(`title.ilike.%${q}%,description.ilike.%${q}%,transcript.ilike.%${q}%`);
+
+    totalCount = count ?? 0;
+
     const { data } = await supabaseAdmin
       .from("videos")
-      .select("id, youtube_id, title, thumbnail_r2_url, published_at, channel_id, topic_id, transcript")
-      .textSearch("search_vector", q, { type: "websearch", config: "english" })
-      .limit(30);
-    videos = data ?? [];
-  }
+      .select("id, youtube_id, title, thumbnail_r2_url, published_at, channel_id, topic_id, transcript, created_at")
+      .or(`title.ilike.%${q}%,description.ilike.%${q}%,transcript.ilike.%${q}%`)
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE + 1);
 
-  if (channel) videos = videos.filter((v) => v.channel_id === channel);
-  if (topic)   videos = videos.filter((v) => v.topic_id === topic);
+    let filtered = data ?? [];
+
+    if (channel) {
+      filtered = filtered.filter((v) => v.channel_id === channel);
+    }
+    if (topic) {
+      filtered = filtered.filter((v) => v.topic_id === topic);
+    }
+
+    const hasMore = filtered.length > PAGE_SIZE;
+    videos = filtered.slice(0, PAGE_SIZE);
+    nextCursor = hasMore ? videos[videos.length - 1]?.created_at : null;
+  }
 
   const { data: channels } = await supabaseAdmin.from("channels").select("id, name");
   const { data: topics }   = await supabaseAdmin.from("topics").select("id, name");
@@ -31,13 +54,7 @@ export default async function SearchPage({
     <div className="flex flex-col gap-6">
       <h1 className="text-xl font-bold">Search</h1>
 
-      <form className="flex gap-2">
-        <input name="q" defaultValue={q} placeholder="Search videos, transcripts..."
-          className="flex-1 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm" />
-        <button type="submit" className="bg-white text-black rounded px-4 py-2 text-sm font-medium hover:bg-neutral-200">
-          Search
-        </button>
-      </form>
+      <SearchForm q={q} />
 
       {/* Filters */}
       {q && (
@@ -59,16 +76,11 @@ export default async function SearchPage({
         </div>
       )}
 
-      <div className="flex flex-col gap-3">
-        {q && !videos.length && <p className="text-neutral-500 text-sm">No results for "{q}".</p>}
-        {videos.map((v) => {
-          const snippet = v.transcript
-            ? v.transcript.split("\n").find((l: string) => l.toLowerCase().includes(q?.toLowerCase() ?? ""))
-            : undefined;
-          return <VideoCard key={v.id} {...v} snippet={snippet} />;
-        })}
-        {!q && <p className="text-neutral-500 text-sm">Enter a search term above.</p>}
-      </div>
+      {q ? (
+        <SearchFeed initialVideos={videos} initialCursor={nextCursor} initialTotalCount={totalCount} q={q} channel={channel} topic={topic} />
+      ) : (
+        <p className="text-neutral-500 text-sm">Enter a search term above.</p>
+      )}
     </div>
   );
 }
