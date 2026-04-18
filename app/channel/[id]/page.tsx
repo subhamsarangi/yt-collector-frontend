@@ -29,9 +29,43 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
 
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, summary")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, summary, metadata")
     .eq("channel_id", id)
     .order("published_at", { ascending: false });
+
+  // Also fetch topic videos that match this channel by URL
+  // Extract channel ID and handle from channel.url for matching
+  const channelIdMatch = channel.url.match(/\/channel\/([^/?]+)/);
+  const handleMatch = channel.url.match(/\/@([^/?]+)/);
+  const channelId = channelIdMatch?.[1];
+  const handle = handleMatch?.[1];
+
+  let topicVideos: any[] = [];
+  if (channelId || handle) {
+    const { data: allTopicVideos } = await supabaseAdmin
+      .from("videos")
+      .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, summary, metadata")
+      .is("channel_id", null)
+      .not("metadata", "is", null);
+
+    // Filter in code: match by channel_id or @handle in metadata
+    topicVideos = (allTopicVideos ?? []).filter((v) => {
+      const meta = v.metadata ?? {};
+      if (channelId && meta.channel_id === channelId) return true;
+      if (handle && meta.uploader_url?.includes(`@${handle}`)) return true;
+      return false;
+    });
+  }
+
+  // Merge tracked + topic videos, dedupe by youtube_id, sort by date
+  const allVideos = [...(videos ?? []), ...topicVideos];
+  const deduped = Array.from(
+    new Map(allVideos.map((v) => [v.youtube_id, v])).values()
+  ).sort((a, b) => {
+    const dateA = a.published_at ? new Date(a.published_at).getTime() : 0;
+    const dateB = b.published_at ? new Date(b.published_at).getTime() : 0;
+    return dateB - dateA;
+  });
 
   // Active queue items for this channel
   const { data: queueItems } = await supabaseAdmin
@@ -41,19 +75,19 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
     .neq("status", "complete")
     .order("created_at", { ascending: false });
 
-  const videoMap = new Map((videos ?? []).map((v) => [v.youtube_id, v]));
+  const videoMap = new Map(deduped.map((v) => [v.youtube_id, v]));
   const queueMap = new Map((queueItems ?? []).map((q) => [q.youtube_id, q]));
 
-  // Merge: completed videos + any queue-only entries not yet in videos
+  // Merge: all videos + any queue-only entries not yet in videos
   const allYtIds = [
-    ...(videos ?? []).map((v) => v.youtube_id),
+    ...deduped.map((v) => v.youtube_id),
     ...(queueItems ?? [])
       .filter((q) => !videoMap.has(q.youtube_id))
       .map((q) => q.youtube_id),
   ];
 
-  const transcribedCount = (videos ?? []).filter((v) => v.transcript).length;
-  const totalCount = videos?.length ?? 0;
+  const transcribedCount = deduped.filter((v) => v.transcript).length;
+  const totalCount = deduped.length;
 
   return (
     <div className="flex flex-col gap-6">
