@@ -12,6 +12,7 @@ type LogEntry =
 
 export default function TopicSearchForm() {
   const [topic, setTopic] = useState("");
+  const [shortsOnly, setShortsOnly] = useState(false);
   const [loading, setLoading] = useState(false);
   const [log, setLog] = useState<LogEntry[]>([]);
   const [topicId, setTopicId] = useState<string | null>(null);
@@ -28,7 +29,7 @@ export default function TopicSearchForm() {
     const res = await fetch("/api/topic/search", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ topic }),
+      body: JSON.stringify({ topic, shorts_only: shortsOnly }),
     });
 
     if (!res.body) {
@@ -75,22 +76,37 @@ export default function TopicSearchForm() {
 
   return (
     <div className="flex flex-col gap-3">
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <input
-          value={topic}
-          onChange={(e) => setTopic(e.target.value)}
-          placeholder="Search a topic..."
-          required
-          disabled={loading}
-          className="flex-1 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm disabled:opacity-50"
-        />
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-white text-black rounded px-4 py-2 text-sm font-medium hover:bg-neutral-200 disabled:opacity-50 whitespace-nowrap"
-        >
-          {loading ? "Searching..." : "Search"}
-        </button>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <div className="flex gap-2">
+          <input
+            value={topic}
+            onChange={(e) => setTopic(e.target.value)}
+            placeholder="Search a topic..."
+            required
+            disabled={loading}
+            className="flex-1 bg-neutral-900 border border-neutral-700 rounded px-3 py-2 text-sm disabled:opacity-50"
+          />
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-white text-black rounded px-4 py-2 text-sm font-medium hover:bg-neutral-200 disabled:opacity-50 whitespace-nowrap"
+          >
+            {loading ? "Searching..." : "Search"}
+          </button>
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer w-fit select-none">
+          <div
+            onClick={() => !loading && setShortsOnly((v) => !v)}
+            className={`relative w-8 h-4 rounded-full transition-colors ${shortsOnly ? "bg-red-500" : "bg-neutral-700"} ${loading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white transition-transform ${shortsOnly ? "translate-x-4" : "translate-x-0"}`}
+            />
+          </div>
+          <span className="text-xs text-neutral-400">
+            Shorts only <span className="text-neutral-600">(≤ 60s)</span>
+          </span>
+        </label>
       </form>
 
       {log.length > 0 && (

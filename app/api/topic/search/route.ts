@@ -13,7 +13,7 @@ function sse(data: object) {
 export async function POST(req: NextRequest) {
   const denied = await requireOwner();
   if (denied) return denied;
-  const { topic } = await req.json();
+  const { topic, shorts_only } = await req.json();
   if (!topic) {
     return new Response(JSON.stringify({ error: "Missing topic" }), { status: 400 });
   }
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
       const ociRes = await fetch(`${OCI}/search/enhanced/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${OCI_KEY}` },
-        body: JSON.stringify({ topic }),
+        body: JSON.stringify({ topic, shorts_only: shorts_only ?? false }),
       });
 
       if (!ociRes.ok || !ociRes.body) {
