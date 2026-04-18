@@ -94,6 +94,7 @@ export default function VideoCard({
   last_error,
 }: Props) {
   const [showError, setShowError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const dateStr = published_at
     ? new Date(published_at).toLocaleDateString(undefined, {
@@ -121,7 +122,7 @@ export default function VideoCard({
 
   if (compact) {
     const inner = (
-      <div className="flex gap-3 px-4 py-2 hover:bg-neutral-800 transition">
+      <div className="flex gap-3 px-4 py-2 hover:bg-neutral-800 transition relative">
         {thumbnail_r2_url ? (
           <img src={thumbnail_r2_url} alt={title ?? ""} className="w-16 h-10 object-cover rounded flex-shrink-0" />
         ) : (
@@ -132,9 +133,25 @@ export default function VideoCard({
         ) : (
           <div className="h-3 w-40 rounded bg-neutral-800 animate-pulse self-center" />
         )}
+
+        {/* Loading overlay */}
+        {loading && (
+          <div className="absolute inset-0 bg-black/50 rounded flex items-center justify-center">
+            <svg className="w-5 h-5 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          </div>
+        )}
       </div>
     );
-    return id ? <Link href={`/video/${id}`}>{inner}</Link> : <div>{inner}</div>;
+    return id ? (
+      <Link href={`/video/${id}`} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
+        {inner}
+      </Link>
+    ) : (
+      <div>{inner}</div>
+    );
   }
 
   const card = (
@@ -166,7 +183,7 @@ export default function VideoCard({
             <div className="h-2.5 w-20 rounded bg-neutral-800 animate-pulse" />
           )}
           {transcript && (
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-green-500" title="Transcript available">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-green-500" aria-label="Transcript available">
               <path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4z" />
               <path d="M5.5 9.643a.75.75 0 00-1.5 0V10c0 3.06 2.539 5.585 5.75 5.585a5.589 5.589 0 005.75-5.585v-.357a.75.75 0 00-1.5 0v.357a4.089 4.089 0 01-4.25 4.085 4.089 4.089 0 01-4.25-4.085v-.357z" />
             </svg>
@@ -193,8 +210,24 @@ export default function VideoCard({
       {showError && last_error && (
         <ErrorModal error={last_error} onClose={() => setShowError(false)} />
       )}
+
+      {/* Loading overlay */}
+      {loading && (
+        <div className="absolute inset-0 bg-black/50 rounded-lg flex items-center justify-center">
+          <svg className="w-6 h-6 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+          </svg>
+        </div>
+      )}
     </div>
   );
 
-  return id ? <Link href={`/video/${id}`}>{card}</Link> : card;
+  return id ? (
+    <Link href={`/video/${id}`} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
+      {card}
+    </Link>
+  ) : (
+    card
+  );
 }

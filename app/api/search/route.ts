@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
 
   let query = supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at, channel_id, topic_id, transcript")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, channel_id, topic_id, transcript, created_at")
     .or(`title.ilike.%${q}%,description.ilike.%${q}%,transcript.ilike.%${q}%`);
 
   if (cursor) {

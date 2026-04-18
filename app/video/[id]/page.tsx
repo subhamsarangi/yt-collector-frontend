@@ -152,7 +152,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className="w-3.5 h-3.5 text-blue-400 flex-shrink-0"
-                title="Tracked channel"
+                aria-label="Tracked channel"
               >
                 <path
                   fillRule="evenodd"

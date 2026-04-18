@@ -1,8 +1,8 @@
 "use client";
 import { useState } from "react";
-import Link from "next/link";
 import VideoCard from "@/components/VideoCard";
 import EditChannelModal from "@/components/EditChannelModal";
+import ChannelCard from "@/components/ChannelCard";
 
 type Channel = {
   id: string;
@@ -92,54 +92,13 @@ export default function ChannelsGrid({
             {visibleChannels.filter((c) => c.domain === domain).map((channel) => {
               const channelVideos = videos.filter((v) => v.channel_id === channel.id);
               const channelQueue = queueItems.filter((q) => q.source_id === channel.id);
-              const hasContent = channelVideos.length > 0 || channelQueue.length > 0;
               return (
-                <div key={channel.id} className="bg-neutral-900 rounded-xl overflow-hidden flex flex-col">
-                  {/* Channel header */}
-                  <div className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-neutral-700">
-                    {channel.thumbnail_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={channel.thumbnail_url}
-                        alt={channel.name}
-                        className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-full bg-neutral-700 flex items-center justify-center text-sm flex-shrink-0">
-                        {channel.name[0]}
-                      </div>
-                    )}
-                    <Link
-                      href={`/channel/${channel.id}`}
-                      className="font-medium text-sm hover:text-neutral-300 truncate flex-1"
-                    >
-                      {channel.name}
-                    </Link>
-
-                  </div>
-                  {/* Queued / processing items */}
-                  <div className="pt-3 pb-3">
-                    {channelQueue.map((q) => (
-                      <VideoCard
-                        key={q.id}
-                        youtube_id={q.youtube_id}
-                        compact={true}
-                        queueStatus={q.status}
-                        borderStatus={q.status.startsWith("error_") ? "error" : "processing"}
-                        last_error={q.last_error}
-                      />
-                    ))}
-                    {/* Latest completed videos */}
-                    <div className="flex flex-col gap-0 divide-y divide-neutral-800 flex-1">
-                      {channelVideos.map((v) => (
-                        <VideoCard key={v.id} {...v} compact={true} />
-                      ))}
-                      {!hasContent && (
-                        <p className="text-xs text-neutral-600 px-4 py-3">No videos in the last 24hrs.</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
+                <ChannelCard
+                  key={channel.id}
+                  channel={channel}
+                  videos={channelVideos}
+                  queueItems={channelQueue}
+                />
               );
             })}
           </div>
