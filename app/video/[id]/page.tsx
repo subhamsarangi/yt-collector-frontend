@@ -46,6 +46,31 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   const channel = (video as any).channels;
   const topic = (video as any).topics;
 
+  // For topic videos (no channel_id FK), try to find a tracked channel by YouTube channel_id in URL.
+  // Two attempts: UCxxxxxx match first, then @handle match via uploader_url path.
+  let trackedChannel: { id: string; name: string; url: string; thumbnail_url: string | null } | null = null;
+  if (!channel && meta.channel_id) {
+    const { data: byId } = await supabaseAdmin
+      .from("channels")
+      .select("id, name, url, thumbnail_url")
+      .ilike("url", `%${meta.channel_id}%`)
+      .single();
+    trackedChannel = byId ?? null;
+
+    // Fallback: match by @handle extracted from uploader_url (e.g. https://www.youtube.com/@handle)
+    if (!trackedChannel && meta.uploader_url) {
+      const handleMatch = (meta.uploader_url as string).match(/\/@([^/?]+)/);
+      if (handleMatch) {
+        const { data: byHandle } = await supabaseAdmin
+          .from("channels")
+          .select("id, name, url, thumbnail_url")
+          .ilike("url", `%@${handleMatch[1]}%`)
+          .single();
+        trackedChannel = byHandle ?? null;
+      }
+    }
+  }
+
   // Fetch processing log via queue record
   const { data: queueRow } = await supabaseAdmin
     .from("queue").select("id, status").eq("youtube_id", video.youtube_id).order("created_at", { ascending: false }).limit(1).single();
@@ -99,11 +124,15 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
       </div>
 
       {/* Channel — uniform avatar row for both tracked channels and topic videos */}
-      {(channel || meta.channel) && (() => {
-        const name = channel?.name ?? meta.channel ?? "";
-        const avatarUrl = channel?.thumbnail_url ?? null;
-        const href = channel ? "/channels" : (meta.uploader_url ?? meta.webpage_url ?? "#");
-        const isExternal = !channel;
+      {(channel || trackedChannel || meta.channel) && (() => {
+        const resolvedChannel = channel ?? trackedChannel;
+        const name = resolvedChannel?.name ?? meta.channel ?? "";
+        const avatarUrl = resolvedChannel?.thumbnail_url ?? null;
+        const isTracked = !!resolvedChannel;
+        const href = resolvedChannel
+          ? `/channel/${resolvedChannel.id}`
+          : (meta.uploader_url ?? meta.webpage_url ?? "#");
+        const isExternal = !resolvedChannel;
         const initial = name.charAt(0).toUpperCase();
 
         const avatar = avatarUrl ? (
@@ -114,16 +143,37 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
           </div>
         );
 
+        const nameRow = (
+          <span className="flex items-center gap-1">
+            <span>{name}</span>
+            {isTracked && (
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className="w-3.5 h-3.5 text-blue-400 flex-shrink-0"
+                title="Tracked channel"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M16.403 12.652a3 3 0 0 0 0-5.304 3 3 0 0 0-3.75-3.751 3 3 0 0 0-5.305 0 3 3 0 0 0-3.751 3.75 3 3 0 0 0 0 5.305 3 3 0 0 0 3.75 3.751 3 3 0 0 0 5.305 0 3 3 0 0 0 3.751-3.75Zm-2.546-4.46a.75.75 0 0 0-1.214-.883l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
+          </span>
+        );
+
         return isExternal ? (
           <a href={href} target="_blank" rel="noopener noreferrer"
             className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white w-fit">
             {avatar}
-            <span>{name}</span>
+            {nameRow}
           </a>
         ) : (
           <Link href={href} className="flex items-center gap-2 text-sm text-neutral-400 hover:text-white w-fit">
             {avatar}
-            <span>{name}</span>
+            {nameRow}
           </Link>
         );
       })()}
