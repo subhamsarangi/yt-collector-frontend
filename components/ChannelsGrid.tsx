@@ -96,7 +96,7 @@ export default function ChannelsGrid({
               return (
                 <div key={channel.id} className="bg-neutral-900 rounded-xl overflow-hidden flex flex-col">
                   {/* Channel header */}
-                  <div className="flex items-center gap-3 px-4 py-3 border-b border-neutral-800">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-neutral-700">
                     {channel.thumbnail_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -118,24 +118,26 @@ export default function ChannelsGrid({
 
                   </div>
                   {/* Queued / processing items */}
-                  {channelQueue.map((q) => (
-                    <VideoCard
-                      key={q.id}
-                      youtube_id={q.youtube_id}
-                      compact={true}
-                      queueStatus={q.status}
-                      borderStatus={q.status.startsWith("error_") ? "error" : "processing"}
-                      last_error={q.last_error}
-                    />
-                  ))}
-                  {/* Latest completed videos */}
-                  <div className="flex flex-col gap-0 divide-y divide-neutral-800 flex-1">
-                    {channelVideos.map((v) => (
-                      <VideoCard key={v.id} {...v} compact={true} />
+                  <div className="pt-3 pb-3">
+                    {channelQueue.map((q) => (
+                      <VideoCard
+                        key={q.id}
+                        youtube_id={q.youtube_id}
+                        compact={true}
+                        queueStatus={q.status}
+                        borderStatus={q.status.startsWith("error_") ? "error" : "processing"}
+                        last_error={q.last_error}
+                      />
                     ))}
-                    {!hasContent && (
-                      <p className="text-xs text-neutral-600 px-4 py-3">No videos in the last 24hrs.</p>
-                    )}
+                    {/* Latest completed videos */}
+                    <div className="flex flex-col gap-0 divide-y divide-neutral-800 flex-1">
+                      {channelVideos.map((v) => (
+                        <VideoCard key={v.id} {...v} compact={true} />
+                      ))}
+                      {!hasContent && (
+                        <p className="text-xs text-neutral-600 px-4 py-3">No videos in the last 24hrs.</p>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

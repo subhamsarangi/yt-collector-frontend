@@ -29,7 +29,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
 
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, summary, metadata")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, summary, metadata, topic_id, topics(name)")
     .eq("channel_id", id)
     .order("published_at", { ascending: false });
 
@@ -44,7 +44,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
   if (channelId || handle) {
     const { data: allTopicVideos } = await supabaseAdmin
       .from("videos")
-      .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, summary, metadata")
+      .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, summary, metadata, topic_id, topics(name)")
       .is("channel_id", null)
       .not("metadata", "is", null);
 
@@ -150,12 +150,16 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
             const borderStatus: "processing" | "error" | undefined = queueItem
               ? queueItem.status.startsWith("error_") ? "error" : "processing"
               : undefined;
+            const source = video?.topic_id ? "topic" : "channel";
+            const topicName = (video?.topics as any)?.name ?? null;
 
             if (video) {
               return (
                 <VideoCard
                   key={ytId}
                   {...video}
+                  source={source}
+                  topic_name={topicName}
                   borderStatus={borderStatus}
                   queueStatus={queueItem?.status ?? null}
                   last_error={queueItem?.last_error ?? null}
