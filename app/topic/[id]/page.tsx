@@ -25,7 +25,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at, channels(name)")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, channels(name)")
     .eq("topic_id", id)
     .order("published_at", { ascending: false });
 

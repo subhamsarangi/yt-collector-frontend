@@ -11,7 +11,7 @@ const PAGE_SIZE = 20;
 export default async function Home() {
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at, created_at, channel_id, topic_id, channels(name), topics(name)")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, created_at, channel_id, topic_id, transcript, channels(name), topics(name)")
     .order("created_at", { ascending: false })
     .limit(PAGE_SIZE);
 

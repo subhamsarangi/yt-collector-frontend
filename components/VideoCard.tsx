@@ -10,10 +10,12 @@ type Props = {
   published_at?: string | null;
   snippet?: string;
   compact?: boolean;
+  searchResult?: boolean;
   channel_name?: string | null;
   channel_url?: string | null;
   source?: "channel" | "topic" | null;
   topic_name?: string | null;
+  transcript?: string | null;
   // undefined = complete (no border), "processing" = yellow, "error" = red
   borderStatus?: "processing" | "error";
   // queue status label shown when video data isn't available yet
@@ -82,9 +84,11 @@ export default function VideoCard({
   published_at,
   snippet,
   compact,
+  searchResult,
   channel_name,
   source,
   topic_name,
+  transcript,
   borderStatus,
   queueStatus,
   last_error,
@@ -154,12 +158,18 @@ export default function VideoCard({
           <p className="text-xs text-neutral-500 font-mono">{youtube_id}</p>
         )}
 
-        <div className="flex flex-wrap gap-2 text-xs text-neutral-500 mt-1">
+        <div className="flex flex-wrap gap-2 text-xs text-neutral-500 mt-1 items-center">
           {channel_name && <span>{channel_name}</span>}
           {dateStr ? (
             <span>{dateStr}</span>
           ) : (
             <div className="h-2.5 w-20 rounded bg-neutral-800 animate-pulse" />
+          )}
+          {transcript && (
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4 text-green-500" title="Transcript available">
+              <path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4z" />
+              <path d="M5.5 9.643a.75.75 0 00-1.5 0V10c0 3.06 2.539 5.585 5.75 5.585a5.589 5.589 0 005.75-5.585v-.357a.75.75 0 00-1.5 0v.357a4.089 4.089 0 01-4.25 4.085 4.089 4.089 0 01-4.25-4.085v-.357z" />
+            </svg>
           )}
         </div>
 
