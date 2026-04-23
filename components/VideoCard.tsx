@@ -21,6 +21,8 @@ type Props = {
   // queue status label shown when video data isn't available yet
   queueStatus?: string | null;
   last_error?: string | null;
+  /** Render in vertical Shorts style (9:16 thumbnail, title below on desktop / side on mobile) */
+  shorts?: boolean;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -92,6 +94,7 @@ export default function VideoCard({
   borderStatus,
   queueStatus,
   last_error,
+  shorts,
 }: Props) {
   const [showError, setShowError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -151,6 +154,82 @@ export default function VideoCard({
       </Link>
     ) : (
       <div>{inner}</div>
+    );
+  }
+
+  // ── Shorts card ──
+  if (shorts) {
+    const shortsCard = (
+      <div className={`relative bg-neutral-900 rounded-lg overflow-hidden transition ${borderClass} ${id ? "hover:bg-neutral-800" : ""}`}>
+        {errorDot}
+
+        {/* Mobile: thumbnail left (50%) + title right (50%) */}
+        {/* Desktop: full-width 9:16 thumbnail, title below */}
+        <div className="flex md:flex-col">
+          {/* Thumbnail */}
+          <div className="relative w-1/2 md:w-full flex-shrink-0">
+            {/* 9:16 aspect ratio box */}
+            <div className="relative w-full" style={{ paddingBottom: "177.78%" }}>
+              {thumbnail_r2_url ? (
+                <img
+                  src={thumbnail_r2_url}
+                  alt={title ?? ""}
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
+              )}
+            </div>
+          </div>
+
+          {/* Info — beside thumbnail on mobile, below on desktop */}
+          <div className="w-1/2 md:w-full flex flex-col gap-1 p-2 md:p-3 justify-center md:justify-start min-w-0">
+            {title ? (
+              <p className="font-medium text-xs md:text-sm line-clamp-3 md:line-clamp-2">{title}</p>
+            ) : (
+              <div className="h-3 w-full rounded bg-neutral-800 animate-pulse" />
+            )}
+
+            <div className="flex flex-wrap gap-1.5 text-xs text-neutral-500 items-center mt-0.5">
+              {channel_name && <span className="truncate">{channel_name}</span>}
+              {dateStr && <span className="hidden md:inline">{dateStr}</span>}
+              {transcript && (
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-green-500 flex-shrink-0" aria-label="Transcript available">
+                  <path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4z" />
+                  <path d="M5.5 9.643a.75.75 0 00-1.5 0V10c0 3.06 2.539 5.585 5.75 5.585a5.589 5.589 0 005.75-5.585v-.357a.75.75 0 00-1.5 0v.357a4.089 4.089 0 01-4.25 4.085 4.089 4.089 0 01-4.25-4.085v-.357z" />
+                </svg>
+              )}
+            </div>
+
+            {queueStatus && (
+              <span className={`text-xs mt-1 ${queueStatus.startsWith("error_") ? "text-red-400" : "text-yellow-400"}`}>
+                {STATUS_LABEL[queueStatus] ?? queueStatus}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {showError && last_error && (
+          <ErrorModal error={last_error} onClose={() => setShowError(false)} />
+        )}
+
+        {loading && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <svg className="w-6 h-6 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          </div>
+        )}
+      </div>
+    );
+
+    return id ? (
+      <Link href={`/video/${id}`} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
+        {shortsCard}
+      </Link>
+    ) : (
+      shortsCard
     );
   }
 

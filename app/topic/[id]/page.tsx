@@ -47,12 +47,11 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
   const canTrigger = (hasErrors || hasPending) && !isProcessing;
   const hasActivity = (videos?.length ?? 0) > 0 || (queueItems?.length ?? 0) > 0;
 
-  // Check if any video is a short (duration <= 180 or /shorts/ URL)
-  const isShortsOnly = (videos ?? []).some((v: any) => {
+  // Use the stored shorts_only flag on the topic as the primary signal.
+  // Fall back to inspecting video URLs in case the flag is missing (legacy topics).
+  const isShortsOnly = topic.shorts_only || (videos ?? []).some((v: { metadata?: { duration?: number; webpage_url?: string } }) => {
     const meta = v.metadata ?? {};
-    const duration = meta.duration;
-    const webpageUrl = meta.webpage_url;
-    return (duration !== undefined && duration <= 180) || (webpageUrl && webpageUrl.includes("/shorts/"));
+    return meta.webpage_url?.includes("/shorts/") && meta.duration !== undefined && meta.duration <= 180;
   });
 
   return (
@@ -82,7 +81,10 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
       {/* Unified video + queue list */}
       {hasActivity && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className={isShortsOnly
+          ? "grid grid-cols-1 md:grid-cols-5 gap-3"
+          : "grid grid-cols-1 md:grid-cols-2 gap-3"
+        }>
           {(() => {
             const completedVideos = videos ?? [];
             const pendingItems = queueItems ?? [];
@@ -109,6 +111,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                     borderStatus={borderStatus}
                     queueStatus={queueItem?.status ?? null}
                     last_error={queueItem?.last_error ?? null}
+                    shorts={isShortsOnly}
                   />
                 );
               }
@@ -121,6 +124,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                   borderStatus={borderStatus}
                   queueStatus={queueItem?.status ?? null}
                   last_error={queueItem?.last_error ?? null}
+                  shorts={isShortsOnly}
                 />
               );
             });

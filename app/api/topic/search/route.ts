@@ -33,9 +33,11 @@ export async function POST(req: NextRequest) {
       let topic_id: string;
       if (existing) {
         topic_id = existing.id;
+        // Update shorts_only flag if changed
+        await supabaseAdmin.from("topics").update({ shorts_only: shorts_only ?? false }).eq("id", topic_id);
       } else {
         const { data: created } = await supabaseAdmin
-          .from("topics").insert({ name: topic }).select("id").single();
+          .from("topics").insert({ name: topic, shorts_only: shorts_only ?? false }).select("id").single();
         topic_id = created!.id;
       }
 

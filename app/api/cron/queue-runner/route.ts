@@ -297,6 +297,25 @@ async function processItem(item: Record<string, unknown>) {
       return;
     }
 
+    // Topic shorts-only check: skip non-shorts videos.
+    // A genuine Short has a /shorts/ URL. Duration <= 180s alone is not sufficient
+    // because regular videos under 3 min would also pass that check.
+    if (item.source === "topic") {
+      const { data: topicRow } = await supabaseAdmin
+        .from("topics").select("shorts_only").eq("id", item.source_id).single();
+      if (topicRow?.shorts_only) {
+        const duration = (meta.duration as number) ?? 0;
+        const webpageUrl = (meta.webpage_url as string) ?? "";
+        const isShort = webpageUrl.includes("/shorts/") && duration <= 180;
+        if (!isShort) {
+          await supabaseAdmin.from("queue").update({ status: "complete", retry_after: null }).eq("id", item.id);
+          step(`Skipped — topic is shorts-only but video is not a Short (url: ${webpageUrl}, duration: ${duration}s) ✓`);
+          await supabaseAdmin.from("processing_logs").update({ ytdlp_done_at: new Date().toISOString(), steps }).eq("queue_id", item.id);
+          return;
+        }
+      }
+    }
+
     // Audio download
     const duration = (meta.duration as number) ?? 0;
     await supabaseAdmin.from("queue").update({ status: "audio_processing" }).eq("id", item.id);
