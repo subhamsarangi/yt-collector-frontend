@@ -25,7 +25,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
 
   const { data: videos } = await supabaseAdmin
     .from("videos")
-    .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, channels(name)")
+    .select("id, youtube_id, title, thumbnail_r2_url, published_at, transcript, metadata, channels(name)")
     .eq("topic_id", id)
     .order("published_at", { ascending: false });
 
@@ -47,10 +47,25 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
   const canTrigger = (hasErrors || hasPending) && !isProcessing;
   const hasActivity = (videos?.length ?? 0) > 0 || (queueItems?.length ?? 0) > 0;
 
+  // Check if any video is a short (duration <= 180 or /shorts/ URL)
+  const isShortsOnly = (videos ?? []).some((v: any) => {
+    const meta = v.metadata ?? {};
+    const duration = meta.duration;
+    const webpageUrl = meta.webpage_url;
+    return (duration !== undefined && duration <= 180) || (webpageUrl && webpageUrl.includes("/shorts/"));
+  });
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{topic.name}</h1>
+        <div className="flex items-center gap-3">
+          <h1 className="text-xl font-bold">{topic.name}</h1>
+          {isShortsOnly && (
+            <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
+              Shorts only
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-3">
           {isOwner && hasActivity && <TriggerQueueButton enabled={canTrigger} />}
           {(videos?.length ?? 0) > 0 && (
