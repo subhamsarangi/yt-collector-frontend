@@ -6,7 +6,6 @@ const links = [
   { href: "/",         label: "Home",     icon: "🏠" },
   { href: "/channels", label: "Channels", icon: "📺" },
   { href: "/topics",   label: "Topics",   icon: "🔖" },
-  { href: "/search",   label: "Search",   icon: "🔍" },
   { href: "/admin",    label: "Account",  icon: "👤" },
 ];
 
