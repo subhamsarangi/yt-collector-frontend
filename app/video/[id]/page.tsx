@@ -7,6 +7,7 @@ import DeleteVideoButton from "@/components/DeleteVideoButton";
 import ProcessingLog from "@/components/ProcessingLog";
 import RetryVideoButton from "@/components/RetryVideoButton";
 import TranscribeButton from "@/components/TranscribeButton";
+import SummarizeButton from "@/components/SummarizeButton";
 
 export const revalidate = 0;
 
@@ -243,6 +244,11 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
             ))}
           </ul>
         </section>
+      )}
+
+      {/* Summarize button — owner only, transcript exists, no summary yet */}
+      {isOwner && video.transcript && !video.summary && (
+        <SummarizeButton videoId={id} />
       )}
 
       {/* Description — full, no truncation */}

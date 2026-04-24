@@ -20,7 +20,10 @@ async function ociPost(path: string, body: object, timeoutMs = 240000) {
       body: JSON.stringify(body),
       signal: controller.signal,
     });
-    if (!res.ok) throw new Error(`OCI ${path} failed: ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => "");
+      throw new Error(`OCI ${path} failed: ${res.status} — ${body}`);
+    }
     return res.json();
   } finally {
     clearTimeout(timer);
@@ -365,7 +368,7 @@ async function processItem(item: Record<string, unknown>) {
   let summary: string | null = null;
   try {
     await supabaseAdmin.from("queue").update({ status: "summarizing" }).eq("id", item.id);
-    step("Summarization started via Groq (moonshotai/kimi-k2-instruct)");
+    step("Summarization started via Groq (llama-3.3-70b-versatile)");
     await saveSteps();
     const sumRes = await ociPost("/summarize", { transcript });
     summary = sumRes.summary ?? null;
