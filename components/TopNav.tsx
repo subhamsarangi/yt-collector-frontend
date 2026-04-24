@@ -6,6 +6,7 @@ import { getUserRole } from "@/lib/supabase/userRole";
 const links = [
   { href: "/",         label: "Home" },
   { href: "/channels", label: "Channels" },
+  { href: "/scans",    label: "Scans" },
   { href: "/topics",   label: "Topics" },
   { href: "/add",      label: "Add Video" },
 ];

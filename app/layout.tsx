@@ -46,7 +46,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </svg>
           </Link>
         </header>
-        <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">{children}</main>
+        <main className="flex-1 w-full px-4 py-6 md:px-6">{children}</main>
         <BottomNav />
         <RebootModal />
       </body>
