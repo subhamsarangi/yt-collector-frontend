@@ -64,14 +64,14 @@ export default function UsageThresholds({
               min={1}
               value={values[event].hourly}
               onChange={e => update(event, "hourly", Number(e.target.value))}
-              className="w-16 bg-neutral-800 text-white text-sm text-right rounded px-2 py-1 font-mono border border-neutral-700 focus:outline-none focus:border-neutral-500"
+              className="w-16 bg-neutral-800 text-white text-sm text-right rounded px-2 py-1 font-mono border border-neutral-700 focus:outline-none focus:border-neutral-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
             <input
               type="number"
               min={1}
               value={values[event].daily}
               onChange={e => update(event, "daily", Number(e.target.value))}
-              className="w-16 bg-neutral-800 text-white text-sm text-right rounded px-2 py-1 font-mono border border-neutral-700 focus:outline-none focus:border-neutral-500"
+              className="w-16 bg-neutral-800 text-white text-sm text-right rounded px-2 py-1 font-mono border border-neutral-700 focus:outline-none focus:border-neutral-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
             />
           </Fragment>
         ))}

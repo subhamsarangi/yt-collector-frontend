@@ -3,6 +3,7 @@ import { getUserRole } from "@/lib/supabase/userRole";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import UsageThresholds from "@/components/UsageThresholds";
+import UsageCard from "@/components/UsageCard";
 
 export const revalidate = 0;
 
@@ -80,7 +81,7 @@ export default async function UsagePage() {
   }
 
   return (
-    <div className="flex flex-col gap-8 max-w-3xl">
+    <div className="flex flex-col gap-8">
       <div className="flex items-center gap-3">
         <Link href="/admin" className="text-neutral-500 hover:text-white text-sm transition">← Admin</Link>
         <h1 className="text-xl font-bold">API Usage</h1>
@@ -92,8 +93,8 @@ export default async function UsagePage() {
 
       {/* yt-dlp section */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">yt-dlp</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <h2 className="text-lg font-bold text-neutral-300">yt-dlp</h2>
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4">
           {ytdlpEvents.map(event => (
             <UsageCard
               key={event}
@@ -111,8 +112,8 @@ export default async function UsagePage() {
 
       {/* Groq section */}
       <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Groq</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+        <h2 className="text-lg font-bold text-neutral-300">Groq</h2>
+        <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-4">
           {groqEvents.map(event => (
             <UsageCard
               key={event}
@@ -129,8 +130,8 @@ export default async function UsagePage() {
       </section>
 
       {/* Threshold editor */}
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Thresholds</h2>
+      <section className="flex flex-col gap-3 max-w-3xl mx-auto w-full">
+        <h2 className="text-lg font-bold text-neutral-300">Thresholds</h2>
         <UsageThresholds
           events={events}
           labels={Object.fromEntries(events.map(e => [e, EVENT_LABELS[e].label]))}
@@ -141,86 +142,6 @@ export default async function UsagePage() {
       <p className="text-xs text-neutral-600">
         Last updated: {now.toLocaleTimeString()} · Data retained for 30 days
       </p>
-    </div>
-  );
-}
-
-// ── Inline server component for each row ─────────────────────────────────────
-function UsageCard({
-  event,
-  label,
-  icon,
-  count1h,
-  count24h,
-  threshold,
-  hourlyBuckets,
-}: {
-  event: string;
-  label: string;
-  icon: string;
-  count1h: number;
-  count24h: number;
-  threshold: { hourly: number; daily: number };
-  hourlyBuckets: number[];
-}) {
-  const hourlyPct  = Math.min(100, Math.round((count1h  / threshold.hourly) * 100));
-  const dailyPct   = Math.min(100, Math.round((count24h / threshold.daily)  * 100));
-
-  const barColor = (pct: number) =>
-    pct >= 100 ? "bg-red-500" : pct >= 70 ? "bg-amber-400" : "bg-green-500";
-
-  const textColor = (pct: number) =>
-    pct >= 100 ? "text-red-400" : pct >= 70 ? "text-amber-400" : "text-neutral-300";
-
-  const maxBucket = Math.max(...hourlyBuckets, 1);
-
-  return (
-    <div className="bg-neutral-900 rounded-lg p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium flex items-center gap-2">
-          <span>{icon}</span> {label}
-        </span>
-        <span className="text-xs text-neutral-600 font-mono">{event}</span>
-      </div>
-
-      {/* Meters */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-xs">
-            <span className="text-neutral-500">Last hour</span>
-            <span className={`font-mono font-semibold ${textColor(hourlyPct)}`}>
-              {count1h} / {threshold.hourly}
-            </span>
-          </div>
-          <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ${barColor(hourlyPct)}`} style={{ width: `${hourlyPct}%` }} />
-          </div>
-        </div>
-        <div className="flex flex-col gap-1">
-          <div className="flex justify-between text-xs">
-            <span className="text-neutral-500">Last 24h</span>
-            <span className={`font-mono font-semibold ${textColor(dailyPct)}`}>
-              {count24h} / {threshold.daily}
-            </span>
-          </div>
-          <div className="h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-            <div className={`h-full rounded-full transition-all ${barColor(dailyPct)}`} style={{ width: `${dailyPct}%` }} />
-          </div>
-        </div>
-      </div>
-
-      {/* Sparkline — 24 hourly buckets */}
-      <div className="flex items-end gap-px h-8" title="Calls per hour over last 24h">
-        {hourlyBuckets.map((val, i) => (
-          <div
-            key={i}
-            className="flex-1 bg-neutral-700 rounded-sm"
-            style={{ height: `${Math.max(2, Math.round((val / maxBucket) * 100))}%` }}
-            title={`${val} calls`}
-          />
-        ))}
-      </div>
-      <p className="text-xs text-neutral-600 -mt-1">← 24h ago · now →</p>
     </div>
   );
 }

@@ -58,6 +58,7 @@ export async function GET() {
         entries_found: 0,
         queued: 0,
         error: e instanceof Error ? e.message : "Network error",
+        source: "automated",
       });
       continue;
     }
@@ -71,6 +72,7 @@ export async function GET() {
         entries_found: 0,
         queued: 0,
         error: `OCI ${res.status}`,
+        source: "automated",
       });
       continue;
     }
@@ -121,6 +123,7 @@ export async function GET() {
       channel_id: channel.id,
       entries_found: entries.length,
       queued: channelQueued,
+      source: "automated",
     });
   }
 

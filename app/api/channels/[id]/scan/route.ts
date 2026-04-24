@@ -32,14 +32,14 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     });
   } catch (e) {
     const error = e instanceof Error ? e.message : "Network error";
-    await logUsage("ytdlp_channel_scan", { channel_url: channel.url, channel_id: channel.id, entries_found: 0, queued: 0, error });
+    await logUsage("ytdlp_channel_scan", { channel_url: channel.url, channel_id: channel.id, entries_found: 0, queued: 0, error, source: "manual" });
     return NextResponse.json({ error }, { status: 502 });
   }
 
   if (!res.ok) {
     const body = await res.text().catch(() => "(unreadable)");
     const error = `OCI ${res.status}: ${body}`;
-    await logUsage("ytdlp_channel_scan", { channel_url: channel.url, channel_id: channel.id, entries_found: 0, queued: 0, error });
+    await logUsage("ytdlp_channel_scan", { channel_url: channel.url, channel_id: channel.id, entries_found: 0, queued: 0, error, source: "manual" });
     return NextResponse.json({ error }, { status: 502 });
   }
 
@@ -95,6 +95,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
     channel_id: channel.id,
     entries_found: entries.length,
     queued,
+    source: "manual",
   });
 
   return NextResponse.json({ ok: true, queued, skipped, entries_found: entries.length });

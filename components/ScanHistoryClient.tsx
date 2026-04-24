@@ -13,6 +13,7 @@ type ChannelResult = {
 
 type ScanData = {
   scanned_at: string;
+  source: string;
   channels_scanned: number;
   channels_with_new_videos: number;
   total_entries_found: number;
@@ -73,9 +74,14 @@ export default function ScanHistoryClient() {
               <div key={scan.scanned_at} className="bg-neutral-900 rounded-lg p-4 border border-neutral-800 flex flex-col gap-3 aspect-square">
                 {/* Header */}
                 <div>
-                  <p className="font-semibold text-base">
-                    {new Date(scan.scanned_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })} {new Date(scan.scanned_at).toLocaleTimeString()}
-                  </p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="font-semibold text-base">
+                      {new Date(scan.scanned_at).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })} {new Date(scan.scanned_at).toLocaleTimeString()}
+                    </p>
+                    <span className={`text-xs px-2 py-0.5 rounded ${scan.source === 'automated' ? 'bg-blue-900 text-blue-200' : 'bg-purple-900 text-purple-200'}`}>
+                      {scan.source === 'automated' ? 'Auto' : 'Manual'}
+                    </span>
+                  </div>
                   <p className="text-sm text-neutral-500">{timeAgo(scan.scanned_at)}</p>
                   
                   {/* Top channels */}

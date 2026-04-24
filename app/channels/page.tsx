@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/server";
 import { getUserRole } from "@/lib/supabase/userRole";
+import Link from "next/link";
 import AddChannelForm from "../../components/AddChannelForm";
 import BulkImportChannels from "../../components/BulkImportChannels";
 import ScanChannelsButton from "../../components/ScanChannelsButton";
@@ -52,6 +53,9 @@ export default async function ChannelsPage() {
         <h1 className="text-xl font-bold">Channels</h1>
         {role !== null && (
           <div className="flex items-center gap-2">
+            <Link href="/scans" className="text-sm px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 transition">
+              📋 Scan history
+            </Link>
             <LastScanModal />
             {isOwner && <ScanChannelsButton channelCount={channels?.length ?? 0} />}
           </div>

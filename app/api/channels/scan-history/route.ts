@@ -68,6 +68,7 @@ export async function GET(request: NextRequest) {
         const entries_found = (meta.entries_found as number) ?? 0;
         const queued = (meta.queued as number) ?? 0;
         const error = (meta.error as string) ?? null;
+        const source = (meta.source as string) ?? "unknown";
 
         stats.channels_scanned++;
         if (entries_found > 0) stats.channels_with_new_videos++;
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
 
       return {
         scanned_at: scan.timestamp,
+        source,
         ...stats,
       };
     });
