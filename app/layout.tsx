@@ -24,6 +24,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${geist.variable} ${lora.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100 pb-16 md:pb-0" style={{ fontFamily: "var(--font-geist-sans)" }}>
+        {/* Global diagonal grid pattern */}
+        <div
+          className="fixed inset-0 -z-10 pointer-events-none"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 20 L20 0 L40 20 L20 40 Z' fill='none' stroke='rgba(255,255,255,0.03)' stroke-width='1'/%3E%3C/svg%3E")`,
+            backgroundSize: '40px 40px'
+          }}
+        />
         <TopNav />
         {/* Mobile header — logo only, visible on small screens */}
         <header className="flex md:hidden items-center justify-between px-4 py-3 bg-neutral-900 border-b border-neutral-800">
