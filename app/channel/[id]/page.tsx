@@ -5,6 +5,7 @@ import Link from "next/link";
 import VideoCard from "@/components/VideoCard";
 import EditChannelModal from "@/components/EditChannelModal";
 import DeleteChannelButton from "@/components/DeleteChannelButton";
+import ScanChannelButton from "@/components/ScanChannelButton";
 
 export const revalidate = 0;
 
@@ -125,6 +126,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
 
         {isOwner && (
           <div className="flex items-center gap-2 flex-shrink-0">
+            <ScanChannelButton channelId={id} />
             <EditChannelModal channel={channel} />
           </div>
         )}
