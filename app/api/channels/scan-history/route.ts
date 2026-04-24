@@ -61,6 +61,8 @@ export async function GET(request: NextRequest) {
         }>,
       };
 
+      const source = (scan.entries[0]?.meta as Record<string, unknown>)?.source as string ?? "unknown";
+
       scan.entries.forEach((entry) => {
         const meta = entry.meta as Record<string, unknown>;
         const channel_id = meta.channel_id as string;
@@ -68,7 +70,6 @@ export async function GET(request: NextRequest) {
         const entries_found = (meta.entries_found as number) ?? 0;
         const queued = (meta.queued as number) ?? 0;
         const error = (meta.error as string) ?? null;
-        const source = (meta.source as string) ?? "unknown";
 
         stats.channels_scanned++;
         if (entries_found > 0) stats.channels_with_new_videos++;
