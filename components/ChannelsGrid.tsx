@@ -11,6 +11,7 @@ type Channel = {
   domain: string;
   thumbnail_url: string | null;
   created_at: string;
+  high_priority?: boolean;
 };
 
 type Video = {

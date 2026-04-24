@@ -26,7 +26,7 @@ export default async function ChannelsPage() {
 
   const { data: channels } = await supabaseAdmin
     .from("channels")
-    .select("id, name, url, domain, thumbnail_url, created_at")
+    .select("id, name, url, domain, thumbnail_url, created_at, high_priority")
     .order("domain");
 
   const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();

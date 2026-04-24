@@ -10,7 +10,9 @@ export async function GET() {
 
   const { data: channels, error: dbError } = await supabaseAdmin
     .from("channels")
-    .select("id, url");
+    .select("id, url")
+    .order("high_priority", { ascending: false })
+    .order("created_at", { ascending: true });
 
   if (dbError) {
     console.error("[scan-channels] Failed to fetch channels from DB:", dbError.message);

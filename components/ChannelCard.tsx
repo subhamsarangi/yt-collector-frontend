@@ -10,6 +10,7 @@ type Channel = {
   domain: string;
   thumbnail_url: string | null;
   created_at: string;
+  high_priority?: boolean;
 };
 
 type Video = {
@@ -66,6 +67,9 @@ export default function ChannelCard({
         >
           {channel.name}
         </Link>
+        {channel.high_priority && (
+          <span className="text-red-500 flex-shrink-0" title="High priority channel">★</span>
+        )}
       </div>
 
       {/* Loading overlay */}
