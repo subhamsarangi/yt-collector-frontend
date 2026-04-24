@@ -251,7 +251,7 @@ export default function VideoCard({
         )}
       </div>
 
-      <div className="flex flex-col gap-1 min-w-0 justify-center">
+      <div className="flex flex-col gap-1 min-w-0 justify-start">
         {/* Title or youtube_id fallback */}
         {title ? (
           <p className="font-medium text-sm line-clamp-2">{title}</p>

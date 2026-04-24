@@ -48,28 +48,30 @@ export default function ChannelCard({
     <div className="bg-neutral-900 rounded-xl overflow-hidden flex flex-col">
       {/* Channel header */}
       <div className="flex items-center gap-3 px-4 py-3 bg-neutral-800 border-b border-neutral-700">
-        {channel.thumbnail_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={channel.thumbnail_url}
-            alt={channel.name}
-            className="w-9 h-9 rounded-full object-cover flex-shrink-0"
-          />
-        ) : (
-          <div className="w-9 h-9 rounded-full bg-neutral-700 flex items-center justify-center text-sm flex-shrink-0">
-            {channel.name[0]}
-          </div>
-        )}
         <Link
           href={`/channel/${channel.id}`}
           onClick={() => !loading && setLoading(true)}
-          className={`font-medium text-sm hover:text-neutral-300 truncate flex-1 ${loading ? "cursor-not-allowed" : ""}`}
+          className={`flex items-center gap-3 flex-1 min-w-0 ${loading ? "cursor-not-allowed" : ""}`}
         >
-          {channel.name}
+          {channel.thumbnail_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={channel.thumbnail_url}
+              alt={channel.name}
+              className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-neutral-700 flex items-center justify-center text-sm flex-shrink-0">
+              {channel.name[0]}
+            </div>
+          )}
+          <span className="font-medium text-sm hover:text-neutral-300 truncate">
+            {channel.name}
+          </span>
+          {channel.high_priority && (
+            <span className="text-red-500 flex-shrink-0" title="High priority channel">★</span>
+          )}
         </Link>
-        {channel.high_priority && (
-          <span className="text-red-500 flex-shrink-0" title="High priority channel">★</span>
-        )}
       </div>
 
       {/* Loading overlay */}
