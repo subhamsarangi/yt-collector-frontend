@@ -7,6 +7,7 @@ const links = [
   { href: "/",         label: "Home" },
   { href: "/channels", label: "Channels" },
   { href: "/topics",   label: "Topics" },
+  { href: "/add",      label: "Add Video" },
 ];
 
 export default async function TopNav() {

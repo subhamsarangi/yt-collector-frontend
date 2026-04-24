@@ -5,7 +5,15 @@ const PAGE_SIZE = 20;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
-  const cursor = searchParams.get("cursor"); // created_at of last item
+  const cursor = searchParams.get("cursor");
+  const youtube_id = searchParams.get("youtube_id");
+
+  // Single video lookup by youtube_id
+  if (youtube_id) {
+    const { data } = await supabaseAdmin
+      .from("videos").select("id, youtube_id, title").eq("youtube_id", youtube_id).single();
+    return NextResponse.json({ videos: data ? [data] : [] });
+  }
 
   let query = supabaseAdmin
     .from("videos")
