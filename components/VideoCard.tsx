@@ -243,7 +243,7 @@ export default function VideoCard({
       {errorDot}
 
       {/* Thumbnail or placeholder */}
-      <div className="relative flex-shrink-0 w-32 h-20">
+      <div className="relative flex-shrink-0 w-64 h-36">
         {thumbnail_r2_url ? (
           <img src={thumbnail_r2_url} alt={title ?? ""} className="w-full h-full object-cover rounded" />
         ) : (

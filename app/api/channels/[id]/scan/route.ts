@@ -21,13 +21,14 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   if (!channel) return NextResponse.json({ error: "Channel not found" }, { status: 404 });
 
-  // Call OCI to get latest videos for this channel
+  // Call OCI to get latest videos for this channel — no date filter, fetch more
+  // candidates so we can find 3 that aren't already in the system
   let res: Response;
   try {
     res = await fetch(`${OCI}/channel/scan`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${OCI_KEY}` },
-      body: JSON.stringify({ channel_url: channel.url, count: 3 }),
+      body: JSON.stringify({ channel_url: channel.url, count: 20, no_date_filter: true }),
       signal: AbortSignal.timeout(60_000),
     });
   } catch (e) {

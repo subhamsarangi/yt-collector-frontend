@@ -99,20 +99,20 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
           rel="noopener noreferrer"
           className="relative block group overflow-hidden rounded-lg"
         >
-          <img
-            src={video.thumbnail_r2_url}
-            alt={video.title}
-            className="w-full object-cover max-h-72"
-          />
-          {/* Grey gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
-          {/* YouTube icon */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/yt.png"
-            alt="Play on YouTube"
-            className="absolute inset-0 m-auto w-14 h-14 transition-transform duration-200 group-hover:scale-105 drop-shadow-lg"
-          />
+          <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+            <img
+              src={video.thumbnail_r2_url}
+              alt={video.title}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/yt.png"
+              alt="Play on YouTube"
+              className="absolute inset-0 m-auto w-14 h-14 transition-transform duration-200 group-hover:scale-105 drop-shadow-lg"
+            />
+          </div>
         </a>
       )}
 

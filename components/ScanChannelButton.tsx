@@ -7,31 +7,38 @@ type Props = {
 };
 
 export default function ScanChannelButton({ channelId }: Props) {
-  const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
-  const [result, setResult] = useState<{ queued: number; skipped: number } | null>(null);
-  const [error, setError] = useState("");
+  const [state, setState] = useState<"idle" | "loading">("idle");
+  const [toast, setToast] = useState("");
+  const [toastType, setToastType] = useState<"success" | "error" | "info">("info");
   const router = useRouter();
+
+  function showToast(msg: string, type: "success" | "error" | "info") {
+    setToast(msg);
+    setToastType(type);
+    setTimeout(() => setToast(""), 4000);
+  }
 
   async function handleScan() {
     setState("loading");
-    setError("");
-    setResult(null);
 
     const res = await fetch(`/api/channels/${channelId}/scan`, { method: "POST" });
     const data = await res.json();
+    setState("idle");
 
     if (res.ok) {
-      setState("done");
-      setResult({ queued: data.queued, skipped: data.skipped });
-      if (data.queued > 0) router.refresh();
+      if (data.queued > 0) {
+        showToast(`${data.queued} new video${data.queued !== 1 ? "s" : ""} queued`, "success");
+        router.refresh();
+      } else {
+        showToast("No new videos found", "info");
+      }
     } else {
-      setState("error");
-      setError(data.error ?? "Scan failed.");
+      showToast(data.error ?? "Scan failed.", "error");
     }
   }
 
   return (
-    <div className="flex flex-col gap-1.5 items-end">
+    <>
       <button
         onClick={handleScan}
         disabled={state === "loading"}
@@ -55,15 +62,17 @@ export default function ScanChannelButton({ channelId }: Props) {
         )}
       </button>
 
-      {state === "done" && result && (
-        <p className="text-xs text-neutral-500">
-          {result.queued > 0
-            ? <span className="text-green-400">{result.queued} new video{result.queued !== 1 ? "s" : ""} queued</span>
-            : <span>No new videos found</span>}
-          {result.skipped > 0 && <span> · {result.skipped} already exist</span>}
-        </p>
+      {toast && (
+        <div className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 text-sm px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity ${
+          toastType === "error"
+            ? "bg-red-900 text-red-200"
+            : toastType === "success"
+            ? "bg-green-900 text-green-200"
+            : "bg-neutral-800 text-neutral-200"
+        }`}>
+          {toast}
+        </div>
       )}
-      {state === "error" && <p className="text-xs text-red-400">{error}</p>}
-    </div>
+    </>
   );
 }
