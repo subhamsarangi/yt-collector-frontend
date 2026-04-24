@@ -27,6 +27,8 @@ type Props = {
   useShortsUrl?: boolean;
   /** Render thumbnail on top, info below — for grid layouts */
   vertical?: boolean;
+  /** Duration in seconds */
+  duration?: number | null;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -101,11 +103,20 @@ export default function VideoCard({
   shorts,
   useShortsUrl,
   vertical,
+  duration,
 }: Props) {
   const [showError, setShowError] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const videoUrl = useShortsUrl && shorts ? `/shorts/${id}` : `/video/${id}`;
+
+  function fmtDuration(s: number) {
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const sec = Math.floor(s % 60);
+    if (h > 0) return `${h}:${String(m).padStart(2, "0")}:${String(sec).padStart(2, "0")}`;
+    return `${m}:${String(sec).padStart(2, "0")}`;
+  }
 
   const dateStr = published_at
     ? new Date(published_at).toLocaleDateString(undefined, {
@@ -251,6 +262,11 @@ export default function VideoCard({
             <img src={thumbnail_r2_url} alt={title ?? ""} className="absolute inset-0 w-full h-full object-cover" />
           ) : (
             <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
+          )}
+          {duration && (
+            <span className="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-xs font-mono px-1.5 py-0.5 rounded">
+              {fmtDuration(duration)}
+            </span>
           )}
         </div>
 

@@ -147,6 +147,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
                   borderStatus={borderStatus}
                   queueStatus={queueItem?.status ?? null}
                   last_error={queueItem?.last_error ?? null}
+                  duration={(video.metadata as any)?.duration ?? null}
                   vertical
                 />
               );

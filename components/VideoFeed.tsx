@@ -13,6 +13,7 @@ type Video = {
   topic_id: string | null;
   channels: { name: string } | null;
   topics: { name: string } | null;
+  metadata?: { duration?: number } | null;
 };
 
 export default function VideoFeed({ initialVideos, initialCursor }: {
@@ -73,6 +74,7 @@ export default function VideoFeed({ initialVideos, initialCursor }: {
               channel_name={v.channels?.name ?? null}
               source={source}
               topic_name={v.topics?.name ?? null}
+              duration={(v.metadata as any)?.duration ?? null}
               vertical
             />
           );

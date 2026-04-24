@@ -114,6 +114,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                     shorts={isShortsOnly}
                     useShortsUrl={isShortsOnly}
                     vertical={!isShortsOnly}
+                    duration={(video.metadata as any)?.duration ?? null}
                   />
                 );
               }
