@@ -39,8 +39,6 @@ function signRequest(method: string, host: string, path: string, date: string, b
     `x-content-sha256: ${contentSha256}`,
   ].join("\n");
 
-  console.log("[reboot] signing string:\n" + signingString);
-
   const keyObject = createPrivateKey({ key: privateKeyPem, format: "pem" });
 
   const sign = createSign("RSA-SHA256");
@@ -67,16 +65,15 @@ export async function POST(req: NextRequest) {
   const privateKey = normalizePem(Buffer.from(privateKeyB64, "base64").toString("utf-8"));
 
   const body_json = await req.json().catch(() => ({}));
-  const action = body_json.action === "RESET" ? "reset" : "softreset";
+  const action = body_json.action === "RESET" ? "RESET" : "SOFTRESET";
 
   const host = `iaas.${REGION}.oraclecloud.com`;
-  const path = `/20160918/instances/${encodeURIComponent(INSTANCE_ID)}/action`;
+  const path = `/20160918/instances/${encodeURIComponent(INSTANCE_ID)}`;
   const pathWithQuery = `${path}?action=${action}`;
   const url  = `https://${host}${pathWithQuery}`;
   // OCI instance action: action is a query param, body is empty
   const body = "";
   const date = new Date().toUTCString();
-  console.log("[reboot] date header:", JSON.stringify(date));
 
   let authorization: string, contentSha256: string, contentLength: string;
   try {

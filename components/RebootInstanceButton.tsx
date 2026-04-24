@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { markRebootStarted } from "./RebootModal";
 
 type HealthStatus = "unknown" | "checking" | "ok" | "down";
 
@@ -30,9 +31,10 @@ export default function RebootInstanceButton() {
     });
     const data = await res.json();
     if (res.ok) {
+      markRebootStarted();
       setStep("done");
       setHealth("unknown");
-      setMsg(`${action === "RESET" ? "Hard" : "Soft"} reboot initiated. Instance will restart in ~30 seconds.`);
+      setMsg(`${action === "RESET" ? "Hard" : "Soft"} reboot initiated.`);
       setTimeout(() => setStep("idle"), 10000);
     } else {
       setStep("error");

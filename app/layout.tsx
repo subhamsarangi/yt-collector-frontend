@@ -4,6 +4,7 @@ import Link from "next/link";
 import "./globals.css";
 import BottomNav from "@/components/BottomNav";
 import TopNav from "@/components/TopNav";
+import RebootModal from "@/components/RebootModal";
 
 const geist = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const lora = Lora({ variable: "--font-lora", subsets: ["latin"], style: ["normal", "italic"] });
@@ -34,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
         <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-6">{children}</main>
         <BottomNav />
+        <RebootModal />
       </body>
     </html>
   );
