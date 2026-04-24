@@ -83,7 +83,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
       {hasActivity && (
         <div className={isShortsOnly
           ? "grid grid-cols-1 md:grid-cols-5 gap-3"
-          : "grid grid-cols-1 md:grid-cols-2 gap-3"
+          : "grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch"
         }>
           {(() => {
             const completedVideos = videos ?? [];
@@ -113,6 +113,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                     last_error={queueItem?.last_error ?? null}
                     shorts={isShortsOnly}
                     useShortsUrl={isShortsOnly}
+                    vertical={!isShortsOnly}
                   />
                 );
               }
@@ -127,6 +128,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                   last_error={queueItem?.last_error ?? null}
                   shorts={isShortsOnly}
                   useShortsUrl={isShortsOnly}
+                  vertical={!isShortsOnly}
                 />
               );
             });

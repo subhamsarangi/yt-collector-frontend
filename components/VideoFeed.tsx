@@ -63,7 +63,7 @@ export default function VideoFeed({ initialVideos, initialCursor }: {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch">
         {videos.map((v) => {
           const source = v.channel_id ? "channel" : v.topic_id ? "topic" : null;
           return (
@@ -73,6 +73,7 @@ export default function VideoFeed({ initialVideos, initialCursor }: {
               channel_name={v.channels?.name ?? null}
               source={source}
               topic_name={v.topics?.name ?? null}
+              vertical
             />
           );
         })}
@@ -82,11 +83,11 @@ export default function VideoFeed({ initialVideos, initialCursor }: {
       {!done && <div ref={sentinelRef} className="h-1" />}
 
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex gap-3 bg-neutral-900 rounded-lg p-3">
-              <div className="w-32 h-20 rounded bg-neutral-800 animate-pulse flex-shrink-0" />
-              <div className="flex flex-col gap-2 flex-1 justify-center">
+            <div key={i} className="flex flex-col bg-neutral-900 rounded-lg overflow-hidden">
+              <div className="w-full aspect-video bg-neutral-800 animate-pulse" />
+              <div className="flex flex-col gap-2 p-3">
                 <div className="h-3 w-3/4 rounded bg-neutral-800 animate-pulse" />
                 <div className="h-3 w-1/2 rounded bg-neutral-800 animate-pulse" />
               </div>

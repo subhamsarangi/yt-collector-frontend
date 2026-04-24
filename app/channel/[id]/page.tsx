@@ -107,7 +107,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
 
       {/* Video list */}
       {allYtIds.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-stretch">
           {allYtIds.map((ytId) => {
             const video = videoMap.get(ytId);
             const queueItem = queueMap.get(ytId);
@@ -127,6 +127,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
                   borderStatus={borderStatus}
                   queueStatus={queueItem?.status ?? null}
                   last_error={queueItem?.last_error ?? null}
+                  vertical
                 />
               );
             }
@@ -138,6 +139,7 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
                 borderStatus={borderStatus}
                 queueStatus={queueItem?.status ?? null}
                 last_error={queueItem?.last_error ?? null}
+                vertical
               />
             );
           })}

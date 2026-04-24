@@ -25,6 +25,8 @@ type Props = {
   shorts?: boolean;
   /** Use /shorts/[id] URL instead of /video/[id] when shorts is true */
   useShortsUrl?: boolean;
+  /** Render thumbnail on top, info below — for grid layouts */
+  vertical?: boolean;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -98,6 +100,7 @@ export default function VideoCard({
   last_error,
   shorts,
   useShortsUrl,
+  vertical,
 }: Props) {
   const [showError, setShowError] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -235,6 +238,69 @@ export default function VideoCard({
       </Link>
     ) : (
       shortsCard
+    );
+  }
+
+  if (vertical) {
+    const verticalCard = (
+      <div className={`relative flex flex-col bg-neutral-900 rounded-lg overflow-hidden transition h-full ${borderClass} ${id ? "hover:bg-neutral-800" : ""}`}>
+        {errorDot}
+        {/* Thumbnail — 16:9 */}
+        <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+          {thumbnail_r2_url ? (
+            <img src={thumbnail_r2_url} alt={title ?? ""} className="absolute inset-0 w-full h-full object-cover" />
+          ) : (
+            <div className="absolute inset-0 bg-neutral-800 animate-pulse" />
+          )}
+        </div>
+
+        {/* Info below thumbnail — flex-1 so all cards stretch to same height */}
+        <div className="flex flex-col gap-1 p-3 min-w-0 flex-1">
+          {title ? (
+            <p className="font-medium text-sm line-clamp-2 overflow-hidden">{title}</p>
+          ) : (
+            <p className="text-xs text-neutral-500 font-mono truncate">{youtube_id}</p>
+          )}
+          <div className="flex flex-wrap gap-2 text-xs text-neutral-500 items-center mt-0.5">
+            {channel_name && <span className="truncate max-w-full">{channel_name}</span>}
+            {dateStr && <span className="flex-shrink-0">{dateStr}</span>}
+            {transcript && (
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 text-green-500 flex-shrink-0" aria-label="Transcript available">
+                <path d="M7 4a3 3 0 016 0v6a3 3 0 11-6 0V4z" />
+                <path d="M5.5 9.643a.75.75 0 00-1.5 0V10c0 3.06 2.539 5.585 5.75 5.585a5.589 5.589 0 005.75-5.585v-.357a.75.75 0 00-1.5 0v.357a4.089 4.089 0 01-4.25 4.085 4.089 4.089 0 01-4.25-4.085v-.357z" />
+              </svg>
+            )}
+          </div>
+          {queueStatus && (
+            <span className={`text-xs mt-0.5 ${queueStatus.startsWith("error_") ? "text-red-400" : "text-yellow-400"}`}>
+              {STATUS_LABEL[queueStatus] ?? queueStatus}
+            </span>
+          )}
+          {source === "topic" && (
+            <span className="text-[9px] font-semibold text-neutral-500 mt-auto pt-1">{topic_name ?? "Topic"}</span>
+          )}
+        </div>
+
+        {showError && last_error && (
+          <ErrorModal error={last_error} onClose={() => setShowError(false)} />
+        )}
+        {loading && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <svg className="w-6 h-6 animate-spin text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+          </div>
+        )}
+      </div>
+    );
+
+    return id ? (
+      <Link href={videoUrl} onClick={() => !loading && setLoading(true)} className={`h-full ${loading ? "cursor-not-allowed" : ""}`}>
+        {verticalCard}
+      </Link>
+    ) : (
+      verticalCard
     );
   }
 
