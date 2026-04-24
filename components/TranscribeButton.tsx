@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function TranscribeButton({ videoId }: { videoId: string }) {
   const [state, setState] = useState<"idle" | "loading" | "queued" | "error">("idle");
@@ -21,8 +20,8 @@ export default function TranscribeButton({ videoId }: { videoId: string }) {
     }
 
     setState("queued");
-    // Refresh so the ProcessingLog appears and the button disappears
-    router.refresh();
+    // Hard reload so the server re-renders with the new queue item and ProcessingLog appears
+    window.location.reload();
   }
 
   if (state === "queued") {
