@@ -15,7 +15,7 @@ const DEFAULT_THRESHOLDS: Record<string, { hourly: number; daily: number }> = {
   ytdlp_metadata:     { hourly: 20,  daily: 100 },
   ytdlp_audio:        { hourly: 10,  daily: 50  },
   groq_whisper:       { hourly: 10,  daily: 50  },
-  groq_kimi:          { hourly: 20,  daily: 100 },
+  groq_llama:         { hourly: 20,  daily: 100 },
   groq_qwen:          { hourly: 10,  daily: 30  },
 };
 
@@ -25,7 +25,7 @@ const EVENT_LABELS: Record<string, { label: string; icon: string; group: string 
   ytdlp_metadata:     { label: "Metadata fetches",   icon: "📋", group: "yt-dlp" },
   ytdlp_audio:        { label: "Audio downloads",    icon: "🎵", group: "yt-dlp" },
   groq_whisper:       { label: "Whisper (STT)",       icon: "🎙️", group: "Groq" },
-  groq_kimi:          { label: "Kimi (summarize)",   icon: "✍️", group: "Groq" },
+  groq_llama:         { label: "Llama (summarize)",  icon: "✍️", group: "Groq" },
   groq_qwen:          { label: "Qwen (search AI)",   icon: "🤖", group: "Groq" },
 };
 

@@ -373,7 +373,7 @@ async function processItem(item: Record<string, unknown>) {
     const sumRes = await ociPost("/summarize", { transcript });
     summary = sumRes.summary ?? null;
     step(`Summarization done — ${summary?.split("\n").length ?? 0} bullet points`);
-    await logUsage("groq_kimi", { youtube_id: item.youtube_id, transcript_chars: transcript.length, bullets: summary?.split("\n").length ?? 0 });
+    await logUsage("groq_llama", { youtube_id: item.youtube_id, transcript_chars: transcript.length, bullets: summary?.split("\n").length ?? 0 });
   } catch (e) {
     step(`Summarization failed (non-fatal): ${e instanceof Error ? e.message : String(e)}`, false);
   }
