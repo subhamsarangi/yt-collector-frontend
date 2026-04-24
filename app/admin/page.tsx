@@ -8,6 +8,7 @@ import RebootInstanceButton from "@/components/RebootInstanceButton";
 import AudioCapSlider from "@/components/AudioCapSlider";
 import ScanLimitSlider from "@/components/ScanLimitSlider";
 import MigrateChannelThumbnailsButton from "@/components/MigrateChannelThumbnailsButton";
+import AdminUserRow from "@/components/AdminUserRow";
 
 export const revalidate = 0;
 
@@ -92,7 +93,19 @@ export default async function AdminPage() {
   const scanLimit = (scanLimitSetting?.value as number) ?? 20;
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-8 relative">
+      {/* Background gradient + grid pattern */}
+      <div className="fixed inset-0 -z-10 bg-gradient-to-br from-blue-950/20 via-neutral-950 to-purple-950/20 pointer-events-none" />
+      <div
+        className="fixed inset-0 -z-10 pointer-events-none opacity-[0.03]"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, rgb(255 255 255) 1px, transparent 1px),
+            linear-gradient(to bottom, rgb(255 255 255) 1px, transparent 1px)
+          `,
+          backgroundSize: '40px 40px'
+        }}
+      />
       <h1 className="text-xl font-bold text-center uppercase tracking-widest">Admin</h1>
 
       <section className="flex flex-col gap-3 border border-neutral-800 rounded-xl p-5">
@@ -100,30 +113,18 @@ export default async function AdminPage() {
         {users?.map((u) => {
           const isSelf = u.id === currentUser?.id;
           return (
-            <div key={u.id} className="flex items-center justify-between bg-neutral-900 rounded-lg px-4 py-3">
-              <div>
-                <p className="text-sm font-medium">{u.email} {isSelf && <span className="text-xs text-neutral-500">(you)</span>}</p>
-                <p className="text-xs text-neutral-500">{u.role} · joined {new Date(u.created_at).toLocaleDateString()}</p>
-              </div>
-              {isSelf ? (
-                <span className="text-xs text-neutral-600 px-3 py-1">owner</span>
-              ) : (
-                <form action={`/api/admin/users/${u.id}/${u.approved ? "revoke" : "approve"}`} method="POST">
-                  <button type="submit"
-                    className={`text-xs rounded px-3 py-1 ${u.approved ? "bg-red-900 text-red-300 hover:bg-red-800" : "bg-green-900 text-green-300 hover:bg-green-800"}`}>
-                    {u.approved ? "Revoke" : "Approve"}
-                  </button>
-                </form>
-              )}
-            </div>
+            <AdminUserRow
+              key={u.id}
+              id={u.id}
+              email={u.email}
+              role={u.role}
+              approved={u.approved}
+              createdAt={u.created_at}
+              isSelf={isSelf}
+            />
           );
         })}
         {!users?.length && <p className="text-neutral-500 text-sm">No users yet.</p>}
-        <form action="/api/auth/logout" method="POST">
-          <button type="submit" className="text-sm text-red-400 hover:text-red-300 transition">
-            Log out
-          </button>
-        </form>
       </section>
 
       <section className="flex flex-col gap-3 border border-neutral-800 rounded-xl p-5">
@@ -158,6 +159,12 @@ export default async function AdminPage() {
         <h2 className="text-2xl font-bold text-neutral-100">Server</h2>
         <RebootInstanceButton />
       </section>
+
+      <form action="/api/auth/logout" method="POST">
+        <button type="submit" className="text-sm text-red-400 hover:text-red-300 transition">
+          Log out
+        </button>
+      </form>
     </div>
   );
 }
