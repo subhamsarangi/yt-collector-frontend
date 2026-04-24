@@ -112,6 +112,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                     queueStatus={queueItem?.status ?? null}
                     last_error={queueItem?.last_error ?? null}
                     shorts={isShortsOnly}
+                    useShortsUrl={isShortsOnly}
                   />
                 );
               }
@@ -125,6 +126,7 @@ export default async function TopicPage({ params }: { params: Promise<{ id: stri
                   queueStatus={queueItem?.status ?? null}
                   last_error={queueItem?.last_error ?? null}
                   shorts={isShortsOnly}
+                  useShortsUrl={isShortsOnly}
                 />
               );
             });

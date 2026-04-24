@@ -23,6 +23,8 @@ type Props = {
   last_error?: string | null;
   /** Render in vertical Shorts style (9:16 thumbnail, title below on desktop / side on mobile) */
   shorts?: boolean;
+  /** Use /shorts/[id] URL instead of /video/[id] when shorts is true */
+  useShortsUrl?: boolean;
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -95,9 +97,12 @@ export default function VideoCard({
   queueStatus,
   last_error,
   shorts,
+  useShortsUrl,
 }: Props) {
   const [showError, setShowError] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const videoUrl = useShortsUrl && shorts ? `/shorts/${id}` : `/video/${id}`;
 
   const dateStr = published_at
     ? new Date(published_at).toLocaleDateString(undefined, {
@@ -149,7 +154,7 @@ export default function VideoCard({
       </div>
     );
     return id ? (
-      <Link href={`/video/${id}`} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
+      <Link href={videoUrl} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
         {inner}
       </Link>
     ) : (
@@ -225,7 +230,7 @@ export default function VideoCard({
     );
 
     return id ? (
-      <Link href={`/video/${id}`} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
+      <Link href={videoUrl} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
         {shortsCard}
       </Link>
     ) : (
@@ -303,7 +308,7 @@ export default function VideoCard({
   );
 
   return id ? (
-    <Link href={`/video/${id}`} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
+    <Link href={videoUrl} onClick={() => !loading && setLoading(true)} className={loading ? "cursor-not-allowed" : ""}>
       {card}
     </Link>
   ) : (

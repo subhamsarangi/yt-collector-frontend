@@ -4,7 +4,6 @@ import { useState } from "react";
 export default function TranscribeButton({ videoId }: { videoId: string }) {
   const [state, setState] = useState<"idle" | "loading" | "queued" | "error">("idle");
   const [error, setError] = useState("");
-  const router = useRouter();
 
   async function handleClick() {
     setState("loading");
