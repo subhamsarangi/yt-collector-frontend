@@ -56,6 +56,21 @@ export default async function SearchPage({
 
       <SearchForm q={q} />
 
+      {/* Suggestion chips — shown when no query */}
+      {!q && (
+        <div className="flex flex-wrap gap-2">
+          {["AI explained", "history documentary", "coding tutorial", "science news", "startup advice", "philosophy lecture", "economics", "space exploration"].map((term) => (
+            <a
+              key={term}
+              href={`/search?q=${encodeURIComponent(term)}`}
+              className="text-xs bg-neutral-800 hover:bg-neutral-700 text-neutral-400 hover:text-white rounded-full px-3 py-1.5 transition"
+            >
+              {term}
+            </a>
+          ))}
+        </div>
+      )}
+
       {/* Filters */}
       {q && (
         <div className="flex gap-3 flex-wrap text-sm">
