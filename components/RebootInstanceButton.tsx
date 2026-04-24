@@ -42,7 +42,6 @@ export default function RebootInstanceButton() {
 
   return (
     <div className="flex flex-col gap-3">
-      <h2 className="text-sm font-semibold text-neutral-400">OCI Instance</h2>
 
       {/* Health check */}
       <div className="flex items-center gap-3">
@@ -68,9 +67,9 @@ export default function RebootInstanceButton() {
         )}
       </div>
 
-      {/* Reboot — only shown when health check failed */}
-      {health === "down" && (
-        <div className="flex flex-col gap-2 pl-1 border-l-2 border-red-900">
+      {/* Reboot — shown when health is ok or down (not before first check) */}
+      {(health === "ok" || health === "down") && (
+        <div className={`flex flex-col gap-2 pl-1 border-l-2 ${health === "down" ? "border-red-900" : "border-neutral-700"}`}>
           <p className="text-xs text-neutral-500">
             Soft reboot gracefully restarts. Hard reboot is a forced power cycle — use as last resort.
           </p>

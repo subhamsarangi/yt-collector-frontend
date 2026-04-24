@@ -93,39 +93,10 @@ export default async function AdminPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <h1 className="text-xl font-bold">Admin</h1>
+      <h1 className="text-xl font-bold text-center uppercase tracking-widest">Admin</h1>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Server</h2>
-        <RebootInstanceButton />
-        <Link
-          href="/admin/usage"
-          className="text-sm text-neutral-400 hover:text-white transition flex items-center gap-2 bg-neutral-900 rounded-lg px-4 py-3"
-        >
-          <span>📊</span>
-          <span>API Usage &amp; Rate Limits</span>
-          <span className="ml-auto text-neutral-600">→</span>
-        </Link>
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Transcription</h2>
-        <AudioCapSlider initial={audioCap} />
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Channel Scanning</h2>
-        <ScanLimitSlider initial={scanLimit} />
-        <MigrateChannelThumbnailsButton />
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Cookies</h2>
-        <CookieUpload />
-      </section>
-
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xs font-semibold text-neutral-500 uppercase tracking-wider">Accounts</h2>
+      <section className="flex flex-col gap-3 border border-neutral-800 rounded-xl p-5">
+        <h2 className="text-2xl font-bold text-neutral-100">Accounts</h2>
         {users?.map((u) => {
           const isSelf = u.id === currentUser?.id;
           return (
@@ -153,6 +124,39 @@ export default async function AdminPage() {
             Log out
           </button>
         </form>
+      </section>
+
+      <section className="flex flex-col gap-3 border border-neutral-800 rounded-xl p-5">
+        <h2 className="text-2xl font-bold text-neutral-100">Usage</h2>
+        <Link
+          href="/admin/usage"
+          className="text-sm text-neutral-400 hover:text-white transition flex items-center gap-2 bg-neutral-900 rounded-lg px-4 py-3"
+        >
+          <span>📊</span>
+          <span>API Usage &amp; Rate Limits</span>
+          <span className="ml-auto text-neutral-600">→</span>
+        </Link>
+      </section>
+
+      <section className="flex flex-col gap-3 border border-neutral-800 rounded-xl p-5">
+        <h2 className="text-2xl font-bold text-neutral-100">Transcription</h2>
+        <AudioCapSlider initial={audioCap} />
+      </section>
+
+      <section className="flex flex-col gap-3 border border-neutral-800 rounded-xl p-5">
+        <h2 className="text-2xl font-bold text-neutral-100">Channel Scanning</h2>
+        <ScanLimitSlider initial={scanLimit} />
+        <MigrateChannelThumbnailsButton />
+      </section>
+
+      <section className="flex flex-col gap-3 border border-neutral-800 rounded-xl p-5">
+        <h2 className="text-2xl font-bold text-neutral-100">Cookies</h2>
+        <CookieUpload />
+      </section>
+
+      <section className="flex flex-col gap-3 border border-neutral-800 rounded-xl p-5">
+        <h2 className="text-2xl font-bold text-neutral-100">Server</h2>
+        <RebootInstanceButton />
       </section>
     </div>
   );

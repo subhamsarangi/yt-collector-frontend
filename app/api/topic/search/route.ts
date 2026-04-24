@@ -36,9 +36,14 @@ export async function POST(req: NextRequest) {
         // Update shorts_only flag if changed
         await supabaseAdmin.from("topics").update({ shorts_only: shorts_only ?? false }).eq("id", topic_id);
       } else {
-        const { data: created } = await supabaseAdmin
+        const { data: created, error: insertError } = await supabaseAdmin
           .from("topics").insert({ name: topic, shorts_only: shorts_only ?? false }).select("id").single();
-        topic_id = created!.id;
+        if (insertError || !created) {
+          await send({ error: `Failed to create topic: ${insertError?.message ?? "unknown error"}` });
+          await writer.close();
+          return;
+        }
+        topic_id = created.id;
       }
 
       // Stream from OCI — pipe all events through and record them
