@@ -86,13 +86,33 @@ export default async function ChannelPage({ params }: { params: Promise<{ id: st
       .map((q) => q.youtube_id),
   ];
 
+  // Last manual scan time for this channel
+  const { data: lastScanLog } = await supabaseAdmin
+    .from("usage_logs")
+    .select("created_at")
+    .eq("event", "ytdlp_channel_scan")
+    .eq("meta->>channel_id", id)
+    .eq("meta->>source", "manual")
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+
+  const lastManualScanAt = lastScanLog?.created_at ?? null;
+  const scanCooldownMs = 24 * 60 * 60 * 1000;
+  const scanDisabled = lastManualScanAt
+    ? Date.now() - new Date(lastManualScanAt).getTime() < scanCooldownMs
+    : false;
+  const scanEnabledAt = lastManualScanAt && scanDisabled
+    ? new Date(new Date(lastManualScanAt).getTime() + scanCooldownMs).toISOString()
+    : null;
+
   const transcribedCount = deduped.filter((v) => v.transcript).length;
   const totalCount = deduped.length;
 
   return (
     <div className="flex flex-col gap-6">
       {/* Header */}
-      <ChannelHeader channel={channel} isOwner={isOwner} />
+      <ChannelHeader channel={channel} isOwner={isOwner} scanDisabled={scanDisabled} scanEnabledAt={scanEnabledAt} />
 
       {/* Back link + stats */}
       <div className="flex items-center justify-between">

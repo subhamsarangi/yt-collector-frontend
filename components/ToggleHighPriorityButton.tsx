@@ -52,8 +52,7 @@ export default function ToggleHighPriorityButton({
             : "bg-neutral-800 hover:bg-neutral-700 text-neutral-200"
         }`}
       >
-        <span>{isHighPriority ? "★" : "☆"}</span>
-        {loading ? "Updating..." : isHighPriority ? "Remove from high priority" : "Mark as high priority"}
+        {loading ? "Updating..." : isHighPriority ? "★ High priority" : "☆ Prioritize"}
       </button>
       {error && <p className="text-xs text-red-400">{error}</p>}
     </div>

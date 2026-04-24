@@ -1,16 +1,48 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type Props = {
   channelId: string;
+  disabled?: boolean;
+  enabledAt?: string | null;
 };
 
-export default function ScanChannelButton({ channelId }: Props) {
+function useCountdown(enabledAt: string | null | undefined) {
+  const [remaining, setRemaining] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!enabledAt) { setRemaining(null); return; }
+
+    function calc() {
+      const diff = new Date(enabledAt!).getTime() - Date.now();
+      if (diff <= 0) { setRemaining(null); return; }
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      setRemaining(`${h}h ${m}m`);
+    }
+
+    calc();
+    const id = setInterval(calc, 60000);
+    return () => clearInterval(id);
+  }, [enabledAt]);
+
+  return remaining;
+}
+
+export default function ScanChannelButton({ channelId, disabled: initialDisabled, enabledAt }: Props) {
   const [state, setState] = useState<"idle" | "loading">("idle");
   const [toast, setToast] = useState("");
   const [toastType, setToastType] = useState<"success" | "error" | "info">("info");
+  const [used, setUsed] = useState(false);
+  const [usedAt, setUsedAt] = useState<string | null>(null);
   const router = useRouter();
+  const effectiveEnabledAt = used && usedAt
+    ? new Date(new Date(usedAt).getTime() + 24 * 60 * 60 * 1000).toISOString()
+    : enabledAt ?? null;
+  const countdown = useCountdown(effectiveEnabledAt);
+
+  const isDisabled = state === "loading" || initialDisabled || used;
 
   function showToast(msg: string, type: "success" | "error" | "info") {
     setToast(msg);
@@ -32,6 +64,8 @@ export default function ScanChannelButton({ channelId }: Props) {
       } else {
         showToast("No new videos found", "info");
       }
+      setUsed(true);
+      setUsedAt(new Date().toISOString());
     } else {
       showToast(data.error ?? "Scan failed.", "error");
     }
@@ -39,28 +73,31 @@ export default function ScanChannelButton({ channelId }: Props) {
 
   return (
     <>
-      <button
-        onClick={handleScan}
-        disabled={state === "loading"}
-        className="flex items-center gap-2 text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg px-4 py-2.5 transition disabled:opacity-50 w-fit"
-      >
-        {state === "loading" ? (
-          <>
-            <svg className="w-3.5 h-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            Scanning...
-          </>
-        ) : (
-          <>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
-              <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
-            </svg>
-            Scan channel
-          </>
-        )}
-      </button>
+      <div className="flex flex-col items-end gap-1">
+        <button
+          onClick={handleScan}
+          disabled={isDisabled}
+          title={isDisabled && (initialDisabled || used) && countdown ? `Available in ${countdown}` : undefined}
+          className="flex items-center gap-2 text-sm bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg px-4 py-2.5 transition disabled:opacity-50 disabled:cursor-not-allowed w-fit"
+        >
+          {state === "loading" ? (
+            <>
+              <svg className="w-3.5 h-3.5 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              Scanning...
+            </>
+          ) : (
+            <>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
+                <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
+              </svg>
+              {countdown ? `Scan · ${countdown}` : "Scan channel"}
+            </>
+          )}
+        </button>
+      </div>
 
       {toast && (
         <div className={`fixed bottom-20 md:bottom-6 left-1/2 -translate-x-1/2 text-sm px-4 py-2 rounded-lg shadow-lg z-50 transition-opacity ${
